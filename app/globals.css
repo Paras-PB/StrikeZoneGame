@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #__next {
+  height: 100%;
+  margin: 0;
+  background: #06090d;
+  overflow: hidden;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  user-select: none;
+}
+
+canvas { display: block; }
+
+.crosshair-dot {
+  box-shadow: 0 0 8px rgba(0,0,0,.8);
+}
+
+@keyframes hitmarker-pop {
+  0% { transform: scale(1.4) rotate(45deg); opacity: 1; }
+  100% { transform: scale(0.9) rotate(45deg); opacity: 0; }
+}
+.hitmarker-anim { animation: hitmarker-pop .25s ease-out forwards; }
+
+@keyframes damage-vignette {
+  0% { opacity: .9; } 100% { opacity: 0; }
+}
