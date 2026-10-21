@@ -127,26 +127,6 @@ export default function MainMenu() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 text-left mb-6">
-          <div className="bg-white/5 border border-white/10 rounded p-4">
-            <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">MOVEMENT — COD FAST</div>
-            <ul className="text-sm text-white/80 space-y-1">
-              <li><b>WASD</b> move · <b>SHIFT</b> sprint</li>
-              <li><b>SPACE</b> jump · <b>C / CTRL</b> slide</li>
-              <li>Slide needs momentum — chain it into jumps</li>
-            </ul>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded p-4">
-            <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">COMBAT</div>
-            <ul className="text-sm text-white/80 space-y-1">
-              <li><b>LMB</b> fire · <b>RMB</b> aim (ADS)</li>
-              <li><b>R</b> reload · <b>G</b> frag grenade</li>
-              <li><b>1 / 2 / 3 / 4 / 5</b> AR / SMG / Shotgun / Sniper / SAW LMG</li>
-              <li><b>F</b> sentry turret · <b>X</b> airstrike (earn 1 per 25 kills)</li>
-              <li>Headshots ×2 · red barrels explode · perks every wave</li>
-            </ul>
-          </div>
-        </div>
 
         {phase === "menu" && (
           <>
