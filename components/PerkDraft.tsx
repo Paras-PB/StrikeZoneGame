@@ -33,6 +33,7 @@ export default function PerkDraft() {
           smg: { mag: 40, reserve: Math.min(360, s.ammo.smg.reserve + 120) },
           sg: { mag: 6, reserve: Math.min(60, s.ammo.sg.reserve + 18) },
           sn: { mag: 5, reserve: Math.min(48, s.ammo.sn.reserve + 10) },
+          saw: { mag: 100, reserve: Math.min(400, s.ammo.saw.reserve + 150) },
         };
         break;
       case "regen":

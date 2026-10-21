@@ -2,7 +2,7 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { Sky, ContactShadows, Stars } from "@react-three/drei";
-import { addCollider, clearColliders } from "@/lib/game";
+import { addCollider, clearColliders, setupBarrels, clearTurret, clearAirstrike } from "@/lib/game";
 import { useGameStore } from "@/lib/store";
 
 function makeGroundTexture() {
@@ -231,19 +231,187 @@ function Floodlight({ position }: { position: [number, number, number] }) {
   );
 }
 
+
+function makeForestTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 1024;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#57603c";
+  g.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 12000; i++) {
+    const x = Math.random() * 1024;
+    const y = Math.random() * 1024;
+    const s = Math.random() * 4 + 1;
+    const v = Math.random();
+    g.fillStyle = v > 0.66 ? "rgba(38,48,26,0.3)" : v > 0.33 ? "rgba(110,118,72,0.22)" : "rgba(84,70,44,0.2)";
+    g.fillRect(x, y, s, s);
+  }
+  // dirt clearings / path
+  g.fillStyle = "rgba(122,104,63,0.5)";
+  g.beginPath();
+  g.ellipse(512, 640, 190, 130, 0.3, 0, Math.PI * 2);
+  g.fill();
+  g.beginPath();
+  g.ellipse(220, 260, 150, 110, 0, 0, Math.PI * 2);
+  g.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(3, 3);
+  t.anisotropy = 4;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function Pine({ position, s = 1 }: { position: [number, number, number]; s?: number }) {
+  return (
+    <group position={position} scale={s}>
+      <mesh castShadow position={[0, 0.9, 0]}>
+        <cylinderGeometry args={[0.16, 0.24, 1.8, 7]} />
+        <meshStandardMaterial color="#4c3a26" roughness={1} />
+      </mesh>
+      <mesh castShadow position={[0, 2.6, 0]}>
+        <coneGeometry args={[1.7, 2.6, 8]} />
+        <meshStandardMaterial color="#2e4630" roughness={1} flatShading />
+      </mesh>
+      <mesh castShadow position={[0, 4.1, 0]}>
+        <coneGeometry args={[1.3, 2.3, 8]} />
+        <meshStandardMaterial color="#35543a" roughness={1} flatShading />
+      </mesh>
+      <mesh castShadow position={[0, 5.5, 0]}>
+        <coneGeometry args={[0.9, 2, 8]} />
+        <meshStandardMaterial color="#3d6242" roughness={1} flatShading />
+      </mesh>
+    </group>
+  );
+}
+
+function Cabin({ position, rotation = 0 }: { position: [number, number, number]; rotation?: number }) {
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      <mesh castShadow receiveShadow position={[0, 1.4, 0]}>
+        <boxGeometry args={[5, 2.8, 4]} />
+        <meshStandardMaterial color="#6e5136" roughness={0.95} />
+      </mesh>
+      {/* log stripes */}
+      {[0.5, 1.1, 1.7, 2.3].map((y) => (
+        <mesh key={y} position={[0, y, 2.01]}>
+          <boxGeometry args={[5.02, 0.07, 0.03]} />
+          <meshStandardMaterial color="#59422a" roughness={1} />
+        </mesh>
+      ))}
+      {/* pyramid roof */}
+      <mesh castShadow position={[0, 3.6, 0]} rotation={[0, Math.PI / 4, 0]} scale={[1, 1, 0.82]}>
+        <coneGeometry args={[3.9, 1.7, 4]} />
+        <meshStandardMaterial color="#3d3129" roughness={0.9} flatShading />
+      </mesh>
+      {/* door + warm window */}
+      <mesh position={[0.9, 1.05, 2.02]}>
+        <boxGeometry args={[0.95, 2.1, 0.06]} />
+        <meshStandardMaterial color="#2c2015" roughness={1} />
+      </mesh>
+      <mesh position={[-1.3, 1.6, 2.02]}>
+        <boxGeometry args={[1, 0.8, 0.06]} />
+        <meshStandardMaterial color="#ffd9a0" emissive="#d8923a" emissiveIntensity={0.9} roughness={0.3} />
+      </mesh>
+      {/* stone step */}
+      <mesh receiveShadow position={[0.9, 0.12, 2.5]}>
+        <boxGeometry args={[1.3, 0.24, 0.9]} />
+        <meshStandardMaterial color="#7a7a72" roughness={1} />
+      </mesh>
+    </group>
+  );
+}
+
+function Rock({ position, s = 1, rotation = 0 }: { position: [number, number, number]; s?: number; rotation?: number }) {
+  return (
+    <mesh castShadow receiveShadow position={[position[0], 0.45 * s, position[2]]} rotation={[0.2, rotation, 0.1]} scale={s}>
+      <dodecahedronGeometry args={[0.85, 0]} />
+      <meshStandardMaterial color="#75756c" roughness={1} flatShading />
+    </mesh>
+  );
+}
+
+// seeded scatter so the forest is identical every load (and colliders match)
+function mulberry32(seed: number) {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const FOREST_CABINS: { x: number; z: number; r: number }[] = [
+  { x: -22, z: -18, r: 0.15 },
+  { x: 20, z: 24, r: -0.2 },
+  { x: -26, z: 16, r: 0.1 },
+];
+const FOREST_TOWER: [number, number] = [24, -26];
+const FOREST_ROCKS: { x: number; z: number; s: number }[] = [
+  { x: 10, z: 6, s: 1.2 },
+  { x: -8, z: -24, s: 1 },
+  { x: 28, z: 2, s: 1.4 },
+  { x: -30, z: -4, s: 1.1 },
+  { x: 14, z: 34, s: 0.9 },
+  { x: -16, z: 30, s: 1.3 },
+];
+const FOREST_ZONE_CLEARINGS: [number, number][] = [
+  [0, 18],
+  [-12, -14],
+  [16, -16],
+  [4, -2],
+];
+
+const FOREST_TREES: { x: number; z: number; s: number }[] = (() => {
+  const rand = mulberry32(1337);
+  const out: { x: number; z: number; s: number }[] = [];
+  let tries = 0;
+  while (out.length < 46 && tries < 600) {
+    tries++;
+    const x = (rand() * 2 - 1) * 52;
+    const z = (rand() * 2 - 1) * 52;
+    if (Math.abs(x) < 9 && z > 2 && z < 28) continue; // spawn clearing
+    if (FOREST_ZONE_CLEARINGS.some(([zx, zz]) => Math.hypot(x - zx, z - zz) < 8.5)) continue;
+    if (FOREST_CABINS.some((c) => Math.hypot(x - c.x, z - c.z) < 7)) continue;
+    if (Math.hypot(x - FOREST_TOWER[0], z - FOREST_TOWER[1]) < 6.5) continue;
+    if (FOREST_ROCKS.some((r) => Math.hypot(x - r.x, z - r.z) < 3.4)) continue;
+    if (out.some((t) => Math.hypot(x - t.x, z - t.z) < 3.4)) continue;
+    out.push({ x, z, s: 0.85 + rand() * 0.55 });
+  }
+  return out;
+})();
+
 export default function World() {
   const groundTex = useMemo(() => (typeof document !== "undefined" ? makeGroundTexture() : null), []);
+  const forestTex = useMemo(() => (typeof document !== "undefined" ? makeForestTexture() : null), []);
   const wave = useGameStore((s) => s.wave);
+  const mapId = useGameStore((s) => s.mapId);
+  const forest = mapId === "forest";
   const night = wave > 0 && wave % 3 === 0;
 
   useEffect(() => {
     clearColliders();
-    // perimeter walls
+    setupBarrels(mapId);
+    clearTurret();
+    clearAirstrike();
+    // perimeter walls (shared)
     const W = 58;
     addCollider(0, 2, -W, 120, 4, 1);
     addCollider(0, 2, W, 120, 4, 1);
     addCollider(-W, 2, 0, 1, 4, 120);
     addCollider(W, 2, 0, 1, 4, 120);
+    if (forest) {
+      for (const c of FOREST_CABINS) addCollider(c.x, 1.4, c.z, 5.6, 2.8, 4.6);
+      addCollider(FOREST_TOWER[0], 5, FOREST_TOWER[1], 4.2, 0.3, 4.2);
+      for (const t of FOREST_TREES) addCollider(t.x, 3, t.z, 0.85, 6.5, 0.85);
+      for (const r of FOREST_ROCKS) addCollider(r.x, 0.6, r.z, 1.7 * r.s, 1.3, 1.7 * r.s);
+      addCollider(6, 0.6, 20, 1.2, 1.2, 1.2);
+      addCollider(-18, 0.6, 4, 1.2, 1.2, 1.2);
+      addCollider(0, 0.5, 8, 4, 1, 1);
+      addCollider(-4, 0.5, -18, 4, 1, 1);
+      return;
+    }
     // warehouses
     addCollider(-28, 3, -20, 18, 6, 12);
     addCollider(28, 3, 22, 18, 6, 12);
@@ -262,26 +430,26 @@ export default function World() {
     addCollider(4, 0.6, -2, 1.2, 1.2, 1.2);
     addCollider(-12, 0.6, -22, 1.2, 1.2, 1.2);
     addCollider(16, 0.6, 14, 1.5, 1.2, 1.5);
-    // watchtower legs zone (block center 3x3 below? allow walk under but platform on top)
-    addCollider(0, 5, -32, 4.2, 0.3, 4.2); // platform standable
+    // watchtower platform (standable)
+    addCollider(0, 5, -32, 4.2, 0.3, 4.2);
     // sandbags
     addCollider(0, 0.5, 10, 4, 1, 1);
     addCollider(-6, 0.5, -28, 4, 1, 1);
     // barriers
     addCollider(0, 0.5, -6, 3.2, 1, 0.6);
     addCollider(-14, 0.5, 0, 3.2, 1, 0.6);
-  }, []);
+  }, [mapId, forest]);
 
   return (
     <group>
-      <Sky distance={4000} sunPosition={night ? [-60, 4, -100] : [80, 28, -120]} turbidity={night ? 2 : 6} rayleigh={night ? 0.6 : 2.2} />
+      <Sky distance={4000} sunPosition={night ? [-60, 4, -100] : forest ? [55, 13, -90] : [80, 28, -120]} turbidity={night ? 2 : forest ? 7 : 6} rayleigh={night ? 0.6 : forest ? 3 : 2.2} />
       {night && <Stars radius={220} depth={60} count={3000} factor={5} saturation={0} fade speed={0.6} />}
-      <fog attach="fog" args={night ? ["#131b2a", 22, 125] : ["#c8b08a", 55, 220]} />
-      <hemisphereLight args={night ? ["#5a6f9e", "#14120e", 0.22] : ["#bfd6ff", "#7a6a4f", 0.75]} />
+      <fog attach="fog" args={night ? ["#131b2a", 22, 125] : forest ? ["#c9b98f", 34, 175] : ["#c8b08a", 55, 220]} />
+      <hemisphereLight args={night ? ["#5a6f9e", "#14120e", 0.22] : forest ? ["#ffe9c4", "#43502f", 0.7] : ["#bfd6ff", "#7a6a4f", 0.75]} />
       <directionalLight
         position={night ? [-40, 55, -25] : [50, 60, -30]}
         intensity={night ? 0.4 : 2.2}
-        color={night ? "#aebfff" : "#fff1d6"}
+        color={night ? "#aebfff" : forest ? "#ffe3ae" : "#fff1d6"}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-70}
@@ -291,6 +459,8 @@ export default function World() {
         shadow-camera-far={200}
       />
 
+      {!forest && (
+        <>
       {/* ground */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[130, 130]} />
@@ -395,6 +565,73 @@ export default function World() {
         <planeGeometry args={[2.8, 1.6]} />
         <meshStandardMaterial color="#c22f2f" side={THREE.DoubleSide} roughness={0.8} />
       </mesh>
+        </>
+      )}
+
+      {forest && (
+        <>
+          {/* forest floor */}
+          <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+            <planeGeometry args={[130, 130]} />
+            {forestTex ? (
+              <meshStandardMaterial map={forestTex} roughness={1} metalness={0} />
+            ) : (
+              <meshStandardMaterial color="#57603c" roughness={1} />
+            )}
+          </mesh>
+          <ContactShadows position={[0, 0.02, 0]} opacity={0.35} scale={120} blur={2} far={4} />
+
+          {/* log palisade perimeter */}
+          {[
+            [0, -58],
+            [0, 58],
+          ].map(([x, z], i) => (
+            <mesh key={"fw" + i} castShadow receiveShadow position={[x, 1.7, z]}>
+              <boxGeometry args={[120, 3.4, 0.8]} />
+              <meshStandardMaterial color="#4c3a26" roughness={1} />
+            </mesh>
+          ))}
+          {[
+            [-58, 0],
+            [58, 0],
+          ].map(([x, z], i) => (
+            <mesh key={"fw2" + i} castShadow receiveShadow position={[x, 1.7, z]}>
+              <boxGeometry args={[0.8, 3.4, 120]} />
+              <meshStandardMaterial color="#4c3a26" roughness={1} />
+            </mesh>
+          ))}
+
+          {FOREST_TREES.map((t, i) => (
+            <Pine key={i} position={[t.x, 0, t.z]} s={t.s} />
+          ))}
+          {FOREST_CABINS.map((c, i) => (
+            <Cabin key={i} position={[c.x, 0, c.z]} rotation={c.r} />
+          ))}
+          <WatchTower position={[FOREST_TOWER[0], 0, FOREST_TOWER[1]]} />
+          {FOREST_ROCKS.map((r, i) => (
+            <Rock key={i} position={[r.x, 0, r.z]} s={r.s} rotation={i * 1.3} />
+          ))}
+
+          <Crate position={[6, 0, 20]} rotation={0.4} />
+          <Crate position={[-18, 0, 4]} />
+          <Sandbags position={[0, 0, 8]} />
+          <Sandbags position={[-4, 0, -18]} rotation={0.4} />
+
+          <Barrel position={[-19, 0, -12]} color="#3a6ea5" />
+          <Barrel position={[23, 0, 21]} color="#4a4e55" />
+
+          <Floodlight position={[-14, 0, -28]} />
+          <Floodlight position={[30, 0, 14]} />
+
+          {/* giant pines beyond the palisade */}
+          {Array.from({ length: 16 }).map((_, i) => {
+            const a = (i / 16) * Math.PI * 2 + 0.2;
+            const r = 78 + (i % 3) * 9;
+            return <Pine key={"outer" + i} position={[Math.cos(a) * r, 0, Math.sin(a) * r]} s={2.4 + (i % 4) * 0.5} />;
+          })}
+        </>
+      )}
+
     </group>
   );
 }

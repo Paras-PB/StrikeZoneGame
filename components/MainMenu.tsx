@@ -20,6 +20,8 @@ export default function MainMenu() {
   const lastRunXp = useGameStore((s) => s.lastRunXp);
   const achievements = useGameStore((s) => s.achievements);
   const bestEndlessWave = useGameStore((s) => s.bestEndlessWave);
+  const mapId = useGameStore((s) => s.mapId);
+  const setStore = useGameStore((s) => s.set);
   const endless = useGameStore((s) => s.endless);
   const rank = rankFor(xp);
 
@@ -104,6 +106,27 @@ export default function MainMenu() {
           <div className="mb-4 text-yellow-300/80 font-bold tracking-[0.25em] text-xs">BEST SCORE: {bestScore}</div>
         )}
 
+        {phase === "menu" && (
+          <div className="grid grid-cols-2 gap-3 mb-3 text-left">
+            <button
+              onClick={() => setStore({ mapId: "arena" })}
+              className={`pointer-events-auto rounded p-4 border transition active:scale-95 ${mapId === "arena" ? "bg-orange-600/25 border-orange-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+            >
+              <div className="font-black tracking-widest text-sm">🏭 THE ARENA</div>
+              <div className="text-white/60 text-xs mt-1">The original compound — warehouses, containers, open lanes.</div>
+              {mapId === "arena" && <div className="text-orange-400 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
+            </button>
+            <button
+              onClick={() => setStore({ mapId: "forest" })}
+              className={`pointer-events-auto rounded p-4 border transition active:scale-95 ${mapId === "forest" ? "bg-orange-600/25 border-orange-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+            >
+              <div className="font-black tracking-widest text-sm">🌲 FOREST OUTPOST <span className="text-green-400 text-[10px] align-middle">NEW · V4</span></div>
+              <div className="text-white/60 text-xs mt-1">Dawn pines, log cabins and a watchtower — like the photo above. Tree cover everywhere.</div>
+              {mapId === "forest" && <div className="text-orange-400 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3 text-left mb-6">
           <div className="bg-white/5 border border-white/10 rounded p-4">
             <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">MOVEMENT — COD FAST</div>
@@ -118,7 +141,8 @@ export default function MainMenu() {
             <ul className="text-sm text-white/80 space-y-1">
               <li><b>LMB</b> fire · <b>RMB</b> aim (ADS)</li>
               <li><b>R</b> reload · <b>G</b> frag grenade</li>
-              <li><b>1 / 2 / 3 / 4</b> AR / SMG / Shotgun / Sniper (RMB = scope)</li>
+              <li><b>1 / 2 / 3 / 4 / 5</b> AR / SMG / Shotgun / Sniper / SAW LMG</li>
+              <li><b>F</b> sentry turret · <b>X</b> airstrike (earn 1 per 25 kills)</li>
               <li>Headshots ×2 · red barrels explode · perks every wave</li>
             </ul>
           </div>
@@ -143,6 +167,9 @@ export default function MainMenu() {
                   ["2", "Weapon 2 — VK-9 SMG"],
                   ["3", "Weapon 3 — BR-12 Shotgun"],
                   ["4", "Weapon 4 — L96 Sniper"],
+                  ["5", "Weapon 5 — M249 SAW LMG (100-round belt)"],
+                  ["F", "Deploy sentry turret — auto-fires for 45s"],
+                  ["X", "Call airstrike on your aim point (earn 1 per 25 kills)"],
                   ["ESC", "Release the mouse"],
                   ["CLICK", "Choose a perk card between waves"],
                 ].map(([k, action]) => (
@@ -161,6 +188,7 @@ export default function MainMenu() {
                 <li>• 🛡️ <b className="text-white">Waves 4 &amp; 8 — Defend the Zone:</b> stand inside the glowing ring until the 60-second timer finishes.</li>
                 <li>• 📦 A <b className="text-white">supply drop</b> lands every wave — run to the crate for a medkit, ammo, grenades or Overdrive (double damage).</li>
                 <li>• 💥 <b className="text-white">Red barrels explode</b> — shoot them near groups. Watch for Exploders (glowing chest) and drones in the sky from wave 5.</li>
+                <li>• 🎯 <b className="text-white">Marksmen</b> (wave 6+) paint you with a <b className="text-red-400">red laser</b> — break line of sight before they fire. 🤖 Deploy your <b className="text-white">sentry (F)</b> to hold ground, and spend <b className="text-white">airstrikes (X)</b> on crowds.</li>
                 <li>• ☠️ <b className="text-white">Wave 10 — the Juggernaut.</b> Beat him to win, then choose <b className="text-white">∞ Endless</b> to see how far you get. Health slowly regenerates if you avoid fire.</li>
               </ul>
             </div>
