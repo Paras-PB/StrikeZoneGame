@@ -21,7 +21,7 @@ export default function Page() {
       {phase === "perk" && <PerkDraft />}
       {(phase === "playing" || phase === "perk" || phase === "dead") && <HUD />}
       <div className="absolute bottom-2 right-3 text-[11px] text-white/40 pointer-events-none">
-        WASD move · SHIFT sprint · SPACE jump · C slide · RMB aim · LMB shoot · R reload · 1/2/3 weapons · shoot red barrels 💥
+        WASD move · SHIFT sprint · SPACE jump · C slide · RMB aim · LMB shoot · R reload · G grenade · 1/2/3/4 weapons · shoot red barrels 💥
       </div>
     </main>
   );

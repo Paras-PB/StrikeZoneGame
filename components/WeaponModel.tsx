@@ -155,9 +155,13 @@ export default function WeaponModel({ flash }: { flash: MutableRefObject<number>
         <group scale={[0.85, 0.85, 0.7]}>
           <Gun color="#3a2f44" accent="#2cc8d8" len={0.6} />
         </group>
-      ) : (
+      ) : active === "sg" ? (
         <group scale={[1.12, 1.05, 0.85]}>
           <Gun color="#44402a" accent="#e08a1e" len={0.8} />
+        </group>
+      ) : (
+        <group scale={[0.92, 0.95, 1.3]}>
+          <Gun color="#26332a" accent="#c8a028" len={1.05} />
         </group>
       )}
       {/* muzzle flash star */}

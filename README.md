@@ -24,7 +24,20 @@ Production: `npm run build && npm start`. Desktop Chrome/Edge recommended (point
 | Mouse | Aim (pointer lock) |
 | LMB / RMB | Fire / Aim down sights |
 | R | Reload |
-| 1 / 2 / 3 | AR / SMG / Shotgun |
+| G | Throw frag grenade |
+| 1 / 2 / 3 / 4 | AR / SMG / Shotgun / Sniper |
+
+## What's in V3 — AIRBORNE
+
+- **Drone enemies** — flying units (from wave 5) that hover at ~3.3m, circle you and fire down. Aim up, and hit the glowing core for a "headshot". They crash out of the sky when killed.
+- **Juggernaut Phase 2** — at 40% HP the boss enrages (+55% speed, +30% damage) and calls in 3 escorts. The HUD boss bar shows ENRAGED.
+- **Defend-the-zone waves** (4, 8, then every 7th in endless) — hold the glowing zone for 60 seconds while reinforcements trickle in. The timer only counts down while you're inside the zone.
+- **Endless mode** — after clearing wave 10, extract for victory or continue: waves scale forever, a Juggernaut returns every 5 waves, your best endless wave is saved.
+- **Supply drops** — one per wave from wave 2: a crate parachutes in under a beacon. Reach it for a random reward — medkit, full ammo, +2 grenades, or 20s of **Overdrive** (double damage).
+- **Frag grenades (G)** — arcing, bouncing, 1.6s fuse, big radial damage. Start with 3, +1 per cleared wave, and they chain beautifully with barrels and Exploders.
+- **Sniper — L96 WHISPER** (key **4**): 150 damage, bolt-action pace, and a true 8× scope on ADS (zoomed FOV, scope overlay, fine aim sensitivity).
+- **XP & ranks** — runs earn persistent XP: Recruit → Corporal → Sergeant → Lieutenant → Captain → Major → Colonel → Commander, with a progress bar in the menu.
+- **8 achievements** — First Blood, Demolitionist, Sharpshooter, Untouchable, Night Owl, Boss Slayer, Rampage, Survivor. Toast popups in-game, checklist in the menu, saved across sessions.
 
 ## What's in V2
 

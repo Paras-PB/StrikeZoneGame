@@ -32,6 +32,7 @@ export default function PerkDraft() {
           ar: { mag: 30, reserve: Math.min(300, s.ammo.ar.reserve + 90) },
           smg: { mag: 40, reserve: Math.min(360, s.ammo.smg.reserve + 120) },
           sg: { mag: 6, reserve: Math.min(60, s.ammo.sg.reserve + 18) },
+          sn: { mag: 5, reserve: Math.min(48, s.ammo.sn.reserve + 10) },
         };
         break;
       case "regen":
@@ -67,7 +68,7 @@ export default function PerkDraft() {
         <h2 className="text-4xl font-black tracking-tight mb-1">
           CHOOSE AN <span className="text-orange-500">UPGRADE</span>
         </h2>
-        <p className="text-white/50 text-sm mb-6">Score {score} · perks stack for the rest of the run · Wave {wave + 1} starts on pick{wave + 1 === 10 ? " — the JUGGERNAUT waits" : (wave + 1) % 3 === 0 ? " — night ops" : ""}</p>
+        <p className="text-white/50 text-sm mb-6">Score {score} · perks stack for the rest of the run · Wave {wave + 1} starts on pick{wave + 1 === 10 ? " — the JUGGERNAUT waits" : wave + 1 === 8 || (wave + 1) % 7 === 4 ? " — defend the zone" : (wave + 1) % 3 === 0 ? " — night ops" : ""}</p>
 
         <div className="grid grid-cols-3 gap-3 text-left">
           {choices.map((id) => {

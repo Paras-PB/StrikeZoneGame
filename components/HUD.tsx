@@ -24,7 +24,16 @@ export default function HUD() {
   const lastHitAt = useGameStore((s) => s.lastHitAt);
   const bossHealth = useGameStore((s) => s.bossHealth);
   const bossMax = useGameStore((s) => s.bossMax);
+  const grenades = useGameStore((s) => s.grenades);
+  const objective = useGameStore((s) => s.objective);
+  const objectiveTimeLeft = useGameStore((s) => s.objectiveTimeLeft);
+  const playerInZone = useGameStore((s) => s.playerInZone);
+  const overdriveUntil = useGameStore((s) => s.overdriveUntil);
+  const achToast = useGameStore((s) => s.achToast);
+  const bossEnraged = useGameStore((s) => s.bossEnraged);
   const night = wave > 0 && wave % 3 === 0;
+  const overdrive = Date.now() < overdriveUntil;
+  const scoped = ads && active === "sn";
   const comboLive = combo >= 2 && Date.now() - lastKillAt < 3500;
   const bossPct = bossMax > 0 ? Math.max(0, (bossHealth / bossMax) * 100) : 0;
 
@@ -115,7 +124,7 @@ export default function HUD() {
       {bossMax > 0 && bossHealth > 0 && (
         <div className="absolute top-[74px] left-1/2 -translate-x-1/2 w-[420px] max-w-[70vw]">
           <div className="flex justify-between text-[10px] font-black tracking-[0.3em] text-red-400 mb-1">
-            <span>☠ JUGGERNAUT</span>
+            <span>☠ JUGGERNAUT{bossEnraged ? " — ENRAGED" : ""}</span>
             <span>{bossHealth}</span>
           </div>
           <div className="h-3 bg-white/10 rounded overflow-hidden border border-red-500/40">
@@ -140,6 +149,35 @@ export default function HUD() {
           -{lastHitDmg}
         </div>
       )}
+
+      {/* sniper scope overlay */}
+      {scoped && (
+        <div className="absolute inset-0" style={{ background: "radial-gradient(circle at center, transparent 30vh, rgba(0,0,0,0.97) 31vh)" }}>
+          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-black/70 -translate-x-1/2" />
+          <div className="absolute top-1/2 left-0 right-0 h-px bg-black/70 -translate-y-1/2" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vh] h-[60vh] rounded-full border-2 border-black/60" />
+          <div className="absolute left-1/2 top-[58%] -translate-x-1/2 text-black/60 text-xs font-bold tracking-widest">L96 · 8×</div>
+        </div>
+      )}
+
+      {/* objective banner */}
+      {objective === "defend" && (
+        <div className="absolute top-[118px] left-1/2 -translate-x-1/2 text-center">
+          <div className={`inline-block px-5 py-2 rounded font-black tracking-[0.25em] border ${playerInZone ? "bg-green-950/70 border-green-400/50 text-green-300" : "bg-red-950/70 border-red-400/50 text-red-300 animate-pulse"}`}>
+            🛡️ DEFEND THE ZONE — {Math.ceil(objectiveTimeLeft)}s {playerInZone ? "" : "· GET IN THE ZONE!"}
+          </div>
+        </div>
+      )}
+
+      {/* overdrive + achievement toast */}
+      <div className="absolute top-[118px] right-4 flex flex-col gap-1 items-end">
+        {overdrive && <div className="bg-amber-600/85 px-3 py-1 rounded font-black tracking-widest text-xs animate-pulse">⚡ OVERDRIVE — 2× DAMAGE</div>}
+        {achToast && Date.now() - achToast.at < 4200 && (
+          <div className="bg-yellow-500/90 text-black px-3 py-1 rounded font-black tracking-wide text-xs">
+            {achToast.icon} ACHIEVEMENT — {achToast.name}
+          </div>
+        )}
+      </div>
 
       {/* killfeed */}
       <div className="absolute top-4 right-4 flex flex-col gap-1 items-end">
@@ -173,7 +211,12 @@ export default function HUD() {
         <div className="mt-1 text-[11px] text-white/60">
           <span className={active === "ar" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>1 AR</span>{" "}
           <span className={active === "smg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>2 SMG</span>{" "}
-          <span className={active === "sg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>3 SG</span>
+          <span className={active === "sg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>3 SG</span>{" "}
+          <span className={active === "sn" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>4 SNIPER</span>
+        </div>
+        <div className="mt-1 text-[11px] text-white/60">
+          <span className={grenades > 0 ? "text-orange-300 font-bold" : ""}>G FRAG ×{grenades}</span>
+          {overdrive && <span className="text-amber-300 font-bold"> · ⚡2× DMG</span>}
         </div>
       </div>
 

@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { WEAPONS, useGameStore } from "@/lib/store";
-import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo } from "@/lib/game";
+import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo, hitProfile, spawnGrenade } from "@/lib/game";
+import type { EnemyKind } from "@/lib/game";
 import type { BarrelEntry } from "@/lib/game";
 import { sfxShoot, sfxReload, sfxEmpty, sfxHit, sfxHeadshot, sfxStep } from "@/lib/audio";
 import WeaponModel from "./WeaponModel";
@@ -69,6 +70,11 @@ export default function Player() {
       if (e.code === "Digit1") s.set({ activeWeapon: "ar", reloading: false });
       if (e.code === "Digit2") s.set({ activeWeapon: "smg", reloading: false });
       if (e.code === "Digit3") s.set({ activeWeapon: "sg", reloading: false });
+      if (e.code === "Digit4") s.set({ activeWeapon: "sn", reloading: false });
+      if (e.code === "KeyG" && s.grenades > 0) {
+        s.set({ grenades: s.grenades - 1 });
+        spawnGrenade();
+      }
       if (e.code === "Space") e.preventDefault();
     };
     const up = (e: KeyboardEvent) => keys.delete(e.code);
@@ -103,8 +109,9 @@ export default function Player() {
     const move = (e: MouseEvent) => {
       if (document.pointerLockElement !== gl.domElement) return;
       if (useGameStore.getState().phase !== "playing") return;
-      const ads = useGameStore.getState().ads;
-      const sens = ads ? 0.0011 : 0.0021;
+      const gs = useGameStore.getState();
+      const ads = gs.ads;
+      const sens = ads && gs.activeWeapon === "sn" ? 0.00045 : ads ? 0.0011 : 0.0021;
       playerState.yaw -= e.movementX * sens;
       playerState.pitch -= e.movementY * sens;
       playerState.pitch = Math.max(-1.45, Math.min(1.45, playerState.pitch));
@@ -123,12 +130,14 @@ export default function Player() {
     sfxReload();
   }
 
-  function registerKill(head: boolean, base: number, label: string) {
+  function registerKill(head: boolean, base: number, label: string, opts?: { barrel?: boolean; kind?: EnemyKind }) {
     const st = useGameStore.getState();
     const now = Date.now();
     const combo = now - st.lastKillAt < 3500 ? st.combo + 1 : 1;
     const mult = Math.min(combo, 5);
     const pts = base * mult;
+    const newHeadshots = st.headshots + (head ? 1 : 0);
+    const newBarrelKills = st.barrelKills + (opts?.barrel ? 1 : 0);
     st.set({
       kills: st.kills + 1,
       score: st.score + pts,
@@ -136,8 +145,14 @@ export default function Player() {
       lastKillAt: now,
       hitmarker: now,
       hitmarkerKill: true,
-      headshots: st.headshots + (head ? 1 : 0),
+      headshots: newHeadshots,
+      barrelKills: newBarrelKills,
     });
+    st.unlockAch("firstblood");
+    if (opts?.kind === "boss") st.unlockAch("bossslayer");
+    if (combo >= 5) st.unlockAch("rampage");
+    if (newHeadshots >= 10) st.unlockAch("sharpshooter");
+    if (newBarrelKills >= 5) st.unlockAch("demolitionist");
     st.addKillfeed(`${label} +${pts}${mult > 1 ? ` (COMBO x${mult})` : ""}`);
     if (combo === 2) st.addKillfeed("DOUBLE KILL");
     else if (combo === 3) st.addKillfeed("TRIPLE KILL");
@@ -220,24 +235,33 @@ export default function Player() {
       let bestBarrel: BarrelEntry | null = null;
       for (const [id, e] of enemyRegistry) {
         if (!e.alive) continue;
-        const sizeF = e.kind === "boss" ? 1.9 : e.kind === "heavy" ? 1.35 : 1;
-        const chest = new THREE.Vector3(e.pos.x, e.pos.y + 1.15 * sizeF, e.pos.z);
-        const head = new THREE.Vector3(e.pos.x, e.pos.y + 1.72 * sizeF, e.pos.z);
-        for (const [cc, r, isHead] of [[chest, 0.55 * sizeF, false], [head, 0.32 * sizeF, true]] as const) {
-          const oc = new THREE.Vector3().subVectors(cc, origin);
+        const prof = hitProfile(e.kind);
+        const sphereT = (cy: number, r: number): number | null => {
+          const c = new THREE.Vector3(e.pos.x, e.pos.y + cy, e.pos.z);
+          const oc = new THREE.Vector3().subVectors(c, origin);
           const tca = oc.dot(dir);
-          if (tca < 0 || tca > bestT) continue;
+          if (tca < 0) return null;
           const d2 = oc.lengthSq() - tca * tca;
-          if (d2 < r * r) {
-            const thc = Math.sqrt(r * r - d2);
-            const t = tca - thc;
-            if (t > 0 && t < bestT) {
-              bestT = t;
-              bestEnemy = id;
-              bestHead = isHead;
-              bestBarrel = null;
-            }
-          }
+          if (d2 >= r * r) return null;
+          const t = tca - Math.sqrt(r * r - d2);
+          return t > 0 ? t : null;
+        };
+        const chestT = sphereT(prof.chestY, prof.chestR);
+        const headT = sphereT(prof.headY, prof.headR);
+        // head wins ties-ish: a core/head hit counts if it lands within 0.7m of the body hit
+        let t: number | null = null;
+        let isHead = false;
+        if (headT !== null && (chestT === null || headT <= chestT + 0.7)) {
+          t = headT;
+          isHead = true;
+        } else if (chestT !== null) {
+          t = chestT;
+        }
+        if (t !== null && t < bestT) {
+          bestT = t;
+          bestEnemy = id;
+          bestHead = isHead;
+          bestBarrel = null;
         }
       }
       // explosive barrels
@@ -266,13 +290,13 @@ export default function Player() {
       if (bestEnemy !== null) {
         const e = enemyRegistry.get(bestEnemy)!;
         const falloff = Math.max(0.5, 1 - bestT / (w.range * 1.6));
-        const dmg = w.damage * falloff * (bestHead ? w.headMult : 1) * s.damageMult;
+        const dmg = w.damage * falloff * (bestHead ? w.headMult : 1) * s.damageMult * (Date.now() < s.overdriveUntil ? 2 : 1);
         e.health -= dmg;
         anyHit = true;
         pushImpact(end, true);
         if (e.health <= 0 && e.alive) {
           e.alive = false;
-          registerKill(bestHead, bestHead ? 150 : 100, bestHead ? "HEADSHOT" : "ELIMINATED");
+          registerKill(bestHead, bestHead ? 150 : 100, bestHead ? "HEADSHOT" : "ELIMINATED", { kind: e.kind });
         } else {
           const st = useGameStore.getState();
           st.set({ hitmarker: Date.now(), hitmarkerKill: false, lastHitDmg: Math.round(dmg), lastHitAt: Date.now() });
@@ -289,7 +313,7 @@ export default function Player() {
         if (killedList.length === 0) {
           useGameStore.getState().addKillfeed("BARREL DETONATED");
         }
-        for (const _k of killedList) registerKill(false, 100, "BARREL KILL");
+        for (const _k of killedList) registerKill(false, 100, "BARREL KILL", { barrel: true });
       } else if (wallDist < w.range) {
         pushImpact(end, false);
       }
@@ -460,7 +484,7 @@ export default function Player() {
     if (isSliding) camera.rotation.z += 0.17 + Math.sin(now * 31) * 0.006;
 
     const persp = camera as unknown as THREE.PerspectiveCamera;
-    const fovTarget = (ads ? 55 : 82) + (isSliding ? 9 : 0);
+    const fovTarget = (ads ? (s.activeWeapon === "sn" ? 24 : 55) : 82) + (isSliding ? 9 : 0);
     persp.fov += (fovTarget - persp.fov) * (1 - Math.exp(-10 * dt));
     persp.updateProjectionMatrix();
 
