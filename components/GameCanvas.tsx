@@ -11,6 +11,7 @@ import Grenades from "./Grenades";
 import SupplyDrop from "./SupplyDrop";
 import Turret from "./Turret";
 import Airstrike from "./Airstrike";
+import Rockets from "./Rockets";
 import { playerState } from "@/lib/game";
 import { useGameStore } from "@/lib/store";
 
@@ -113,6 +114,7 @@ export default function GameCanvas() {
           <Grenades />
           <Turret />
           <Airstrike />
+          <Rockets />
           <Enemies />
           <Effects />
         </Suspense>

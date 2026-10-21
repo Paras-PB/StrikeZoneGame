@@ -159,6 +159,37 @@ export default function WeaponModel({ flash }: { flash: MutableRefObject<number>
         <group scale={[1.12, 1.05, 0.85]}>
           <Gun color="#44402a" accent="#e08a1e" len={0.8} />
         </group>
+      ) : active === "stinger" ? (
+        <group>
+          {/* fat launch tube */}
+          <mesh castShadow position={[0, 0.02, -0.35]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.075, 0.075, 0.95, 14]} />
+            <meshStandardMaterial color="#4a5240" roughness={0.5} metalness={0.45} />
+          </mesh>
+          <mesh position={[0, 0.02, -0.86]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.088, 0.088, 0.1, 14]} />
+            <meshStandardMaterial color="#22251f" roughness={0.6} metalness={0.4} />
+          </mesh>
+          {/* grip + trigger */}
+          <mesh position={[0, -0.13, -0.05]} rotation={[0.25, 0, 0]}>
+            <boxGeometry args={[0.06, 0.16, 0.08]} />
+            <meshStandardMaterial color="#1b1e22" roughness={0.7} />
+          </mesh>
+          {/* lock-on sight housing */}
+          <mesh castShadow position={[0, 0.14, -0.3]}>
+            <boxGeometry args={[0.11, 0.09, 0.3]} />
+            <meshStandardMaterial color="#101216" roughness={0.4} metalness={0.6} />
+          </mesh>
+          <mesh position={[0, 0.14, -0.46]}>
+            <boxGeometry args={[0.07, 0.05, 0.02]} />
+            <meshStandardMaterial color="#ff4040" emissive="#ff2020" emissiveIntensity={1.6} />
+          </mesh>
+          {/* shoulder rest */}
+          <mesh position={[0, -0.02, 0.22]}>
+            <boxGeometry args={[0.1, 0.14, 0.14]} />
+            <meshStandardMaterial color="#39402f" roughness={0.6} />
+          </mesh>
+        </group>
       ) : active === "saw" ? (
         <group scale={[1.18, 1.12, 1]}>
           <Gun color="#3d3a2e" accent="#7ac74f" len={1.0} />

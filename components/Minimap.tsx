@@ -90,7 +90,7 @@ export default function Minimap() {
       // hostiles — red dots, live positions
       for (const e of enemyRegistry.values()) {
         if (!e.alive) continue;
-        if (e.kind === "boss") {
+        if (e.kind === "boss" || e.kind === "gunship") {
           dot(e.pos.x, e.pos.z, 4.6, "#ff2ad4");
           g.beginPath();
           g.arc(px(e.pos.x), pz(e.pos.z), 6, 0, Math.PI * 2);

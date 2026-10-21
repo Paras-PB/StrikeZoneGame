@@ -199,6 +199,23 @@ export function sfxPerk() {
   });
 }
 
+export function sfxLock() {
+  const c = ac();
+  if (!c || !master) return;
+  const t = c.currentTime;
+  [0, 0.09].forEach((dt) => {
+    const o = c!.createOscillator();
+    o.type = "square";
+    o.frequency.value = 1560;
+    const g = c!.createGain();
+    g.gain.setValueAtTime(0.12, t + dt);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dt + 0.05);
+    o.connect(g).connect(master!);
+    o.start(t + dt);
+    o.stop(t + dt + 0.06);
+  });
+}
+
 export function sfxStep(sprint: boolean) {
   const c = ac();
   if (!c || !master) return;

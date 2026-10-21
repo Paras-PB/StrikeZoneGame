@@ -3,10 +3,10 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { WEAPONS, useGameStore } from "@/lib/store";
-import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo, hitProfile, spawnGrenade, turretState, deployTurret, callAirstrike } from "@/lib/game";
+import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo, hitProfile, spawnGrenade, turretState, deployTurret, callAirstrike, lockState, resetLock, spawnRocket } from "@/lib/game";
 import type { EnemyKind } from "@/lib/game";
 import type { BarrelEntry } from "@/lib/game";
-import { sfxShoot, sfxReload, sfxEmpty, sfxHit, sfxHeadshot, sfxStep } from "@/lib/audio";
+import { sfxShoot, sfxReload, sfxEmpty, sfxHit, sfxHeadshot, sfxStep, sfxLock } from "@/lib/audio";
 import WeaponModel from "./WeaponModel";
 
 const keys = new Set<string>();
@@ -72,6 +72,7 @@ export default function Player() {
       if (e.code === "Digit3") s.set({ activeWeapon: "sg", reloading: false });
       if (e.code === "Digit4") s.set({ activeWeapon: "sn", reloading: false });
       if (e.code === "Digit5") s.set({ activeWeapon: "saw", reloading: false });
+      if (e.code === "Digit6") s.set({ activeWeapon: "stinger", reloading: false });
       if (e.code === "KeyF" && s.turrets > 0 && !turretState) {
         deployTurret(playerState.pos.clone());
         s.set({ turrets: s.turrets - 1 });
@@ -172,6 +173,7 @@ export default function Player() {
     }
     st.unlockAch("firstblood");
     if (opts?.kind === "boss") st.unlockAch("bossslayer");
+    if (opts?.kind === "gunship") st.unlockAch("skyfall");
     if (combo >= 5) st.unlockAch("rampage");
     if (newHeadshots >= 10) st.unlockAch("sharpshooter");
     if (newBarrelKills >= 5) st.unlockAch("demolitionist");
@@ -229,6 +231,16 @@ export default function Player() {
     playerState.pitch += w.pellets ? 0.016 : s.ads ? 0.0035 : 0.007;
     muzzleFlash.current = 1;
     sfxShoot(false, s.ads);
+
+    // STINGER: launch a physical rocket (homing if locked), not hitscan
+    if (s.activeWeapon === "stinger") {
+      const dir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(playerState.pitch, playerState.yaw, 0, "YXZ"));
+      const targetId = lockState.locked ? lockState.id : null;
+      spawnRocket(origin.clone().addScaledVector(dir, 0.8), dir, targetId);
+      resetLock();
+      recoil.current = Math.min(0.12, recoil.current + 0.06);
+      return;
+    }
 
     let anyHit = false;
     let hitSoundPlayed = false;
@@ -513,6 +525,42 @@ export default function Player() {
     playerState.sprinting = wantSprint && moving;
     playerState.ads = ads;
     if (s.sprinting !== playerState.sprinting) s.set({ sprinting: playerState.sprinting });
+
+    // STINGER lock-on: hold ADS on an air target (drone/gunship) for 0.8s
+    if (s.activeWeapon === "stinger" && s.ads) {
+      const fwd = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(playerState.pitch, playerState.yaw, 0, "YXZ"));
+      let bestId: number | null = null;
+      let bestDot = 0.986;
+      for (const [id, e] of enemyRegistry) {
+        if (!e.alive || (e.kind !== "drone" && e.kind !== "gunship")) continue;
+        const prof = hitProfile(e.kind);
+        const to = new THREE.Vector3(e.pos.x - playerState.pos.x, e.pos.y + prof.chestY - (playerState.pos.y + 1.55), e.pos.z - playerState.pos.z);
+        const d = to.length();
+        if (d > 140) continue;
+        to.normalize();
+        const dot = to.dot(fwd);
+        if (dot > bestDot) {
+          bestDot = dot;
+          bestId = id;
+        }
+      }
+      if (bestId !== null && bestId === lockState.id) {
+        lockState.progress = Math.min(1, lockState.progress + dt / 0.8);
+        if (lockState.progress >= 1 && !lockState.locked) {
+          lockState.locked = true;
+          sfxLock();
+          s.addKillfeed("🔒 LOCKED ON");
+        }
+      } else if (bestId !== null) {
+        lockState.id = bestId;
+        lockState.progress = 0;
+        lockState.locked = false;
+      } else {
+        resetLock();
+      }
+    } else if (lockState.id !== null) {
+      resetLock();
+    }
 
     // shooting
     shoot(dt);
