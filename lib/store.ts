@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 export type WeaponId = "ar" | "smg" | "sg" | "sn" | "saw" | "stinger";
-export type MapId = "arena" | "forest";
+export type MapId = "arena" | "forest" | "autumn";
 export type Phase = "menu" | "playing" | "perk" | "dead" | "victory";
 
 export interface WeaponDef {
@@ -152,7 +152,7 @@ export function rankFor(xp: number): { current: string; next: string | null; nex
 }
 
 // ---- achievements (persistent) ----
-export type AchId = "firstblood" | "demolitionist" | "sharpshooter" | "untouchable" | "nightowl" | "bossslayer" | "rampage" | "survivor" | "skyfall" | "stormrider";
+export type AchId = "firstblood" | "demolitionist" | "sharpshooter" | "untouchable" | "nightowl" | "bossslayer" | "rampage" | "survivor" | "skyfall" | "stormrider" | "timber" | "autumnop";
 
 export const ACH_DEFS: Record<AchId, { name: string; icon: string; desc: string }> = {
   firstblood: { name: "FIRST BLOOD", icon: "🩸", desc: "Get your first elimination." },
@@ -165,6 +165,8 @@ export const ACH_DEFS: Record<AchId, { name: string; icon: string; desc: string 
   survivor: { name: "SURVIVOR", icon: "🪖", desc: "Reach wave 7." },
   skyfall: { name: "SKYFALL", icon: "🚁", desc: "Down the GUNSHIP." },
   stormrider: { name: "STORM RIDER", icon: "🌧️", desc: "Clear a storm wave." },
+  timber: { name: "TIMBER", icon: "🌲", desc: "Down a Stalker." },
+  autumnop: { name: "AUTUMN OPERATOR", icon: "🍂", desc: "Win a run on Autumn Ridge." },
 };
 
 function loadNum(key: string): number {

@@ -233,18 +233,28 @@ function Floodlight({ position }: { position: [number, number, number] }) {
 }
 
 
-function makeForestTexture() {
+function makeForestTexture(autumn = false) {
   const c = document.createElement("canvas");
   c.width = c.height = 1024;
   const g = c.getContext("2d")!;
-  g.fillStyle = "#57603c";
+  g.fillStyle = autumn ? "#6e5636" : "#57603c";
   g.fillRect(0, 0, 1024, 1024);
   for (let i = 0; i < 12000; i++) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
     const s = Math.random() * 4 + 1;
     const v = Math.random();
-    g.fillStyle = v > 0.66 ? "rgba(38,48,26,0.3)" : v > 0.33 ? "rgba(110,118,72,0.22)" : "rgba(84,70,44,0.2)";
+    g.fillStyle = autumn
+      ? v > 0.66
+        ? "rgba(146,94,32,0.35)"
+        : v > 0.33
+          ? "rgba(190,130,52,0.28)"
+          : "rgba(90,62,32,0.25)"
+      : v > 0.66
+        ? "rgba(38,48,26,0.3)"
+        : v > 0.33
+          ? "rgba(110,118,72,0.22)"
+          : "rgba(84,70,44,0.2)";
     g.fillRect(x, y, s, s);
   }
   // dirt clearings / path
@@ -282,6 +292,52 @@ function Pine({ position, s = 1 }: { position: [number, number, number]; s?: num
         <coneGeometry args={[0.9, 2, 8]} />
         <meshStandardMaterial color="#3d6242" roughness={1} flatShading />
       </mesh>
+    </group>
+  );
+}
+
+const LEAFY_GREEN = ["#3f7a2e", "#4c8a34", "#5da244", "#356b27"];
+const LEAFY_GOLD = ["#d9932c", "#e0a83e", "#c47b24", "#b85c1e", "#e8b84e"];
+
+/** Big broadleaf tree from Paras's tree sheet: thick trunk, clustered canopy blobs, gentle sway. */
+function LeafyTree({ position, s = 1, gold = false, seed = 0 }: { position: [number, number, number]; s?: number; gold?: boolean; seed?: number }) {
+  const grp = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (!grp.current) return;
+    const t = state.clock.elapsedTime;
+    grp.current.rotation.z = Math.sin(t * 0.7 + seed * 2.1) * 0.022;
+    grp.current.rotation.x = Math.cos(t * 0.55 + seed * 1.3) * 0.014;
+  });
+  const pal = gold ? LEAFY_GOLD : LEAFY_GREEN;
+  const blobs: [number, number, number, number][] = [
+    [0, 4.6, 0, 1.75],
+    [1.15, 4.0, 0.4, 1.3],
+    [-1.1, 4.15, -0.3, 1.25],
+    [0.35, 5.35, -0.7, 1.2],
+    [-0.5, 5.2, 0.75, 1.1],
+  ];
+  return (
+    <group position={position} scale={s}>
+      <group ref={grp}>
+        <mesh castShadow position={[0, 1.3, 0]} rotation={[0, 0, 0.05]}>
+          <cylinderGeometry args={[0.24, 0.42, 2.8, 8]} />
+          <meshStandardMaterial color="#5a4630" roughness={1} />
+        </mesh>
+        <mesh castShadow position={[0.55, 3.1, 0.2]} rotation={[0, 0, -0.7]}>
+          <cylinderGeometry args={[0.1, 0.16, 1.6, 6]} />
+          <meshStandardMaterial color="#5a4630" roughness={1} />
+        </mesh>
+        <mesh castShadow position={[-0.5, 3.2, -0.25]} rotation={[0.3, 0, 0.65]}>
+          <cylinderGeometry args={[0.09, 0.15, 1.5, 6]} />
+          <meshStandardMaterial color="#54422c" roughness={1} />
+        </mesh>
+        {blobs.map(([x, y, z, r], i) => (
+          <mesh key={i} castShadow position={[x, y, z]}>
+            <icosahedronGeometry args={[r, 1]} />
+            <meshStandardMaterial color={pal[Math.abs(Math.round(seed * 7 + i * 2)) % pal.length]} roughness={1} flatShading />
+          </mesh>
+        ))}
+      </group>
     </group>
   );
 }
@@ -336,11 +392,14 @@ function Rock({ position, s = 1, rotation = 0 }: { position: [number, number, nu
 
 export default function World() {
   const groundTex = useMemo(() => (typeof document !== "undefined" ? makeGroundTexture() : null), []);
-  const forestTex = useMemo(() => (typeof document !== "undefined" ? makeForestTexture() : null), []);
+  const forestTex = useMemo(() => (typeof document !== "undefined" ? makeForestTexture(false) : null), []);
+  const autumnTex = useMemo(() => (typeof document !== "undefined" ? makeForestTexture(true) : null), []);
   const wave = useGameStore((s) => s.wave);
   const mapId = useGameStore((s) => s.mapId);
   const storm = useGameStore((s) => s.storm);
   const forest = mapId === "forest";
+  const autumn = mapId === "autumn";
+  const woods = forest || autumn;
   const night = wave > 0 && wave % 3 === 0;
 
   useEffect(() => {
@@ -354,7 +413,7 @@ export default function World() {
     addCollider(0, 2, W, 120, 4, 1);
     addCollider(-W, 2, 0, 1, 4, 120);
     addCollider(W, 2, 0, 1, 4, 120);
-    if (forest) {
+    if (woods) {
       for (const c of FOREST_CABINS) addCollider(c.x, 1.4, c.z, 5.6, 2.8, 4.6);
       addCollider(FOREST_TOWER[0], 5, FOREST_TOWER[1], 4.2, 0.3, 4.2);
       for (const t of FOREST_TREES) addCollider(t.x, 3, t.z, 0.85, 6.5, 0.85);
@@ -391,18 +450,18 @@ export default function World() {
     // barriers
     addCollider(0, 0.5, -6, 3.2, 1, 0.6);
     addCollider(-14, 0.5, 0, 3.2, 1, 0.6);
-  }, [mapId, forest]);
+  }, [mapId, woods]);
 
   return (
     <group>
-      <Sky distance={4000} sunPosition={night ? [-60, 4, -100] : storm ? [30, 18, -60] : forest ? [55, 13, -90] : [80, 28, -120]} turbidity={night ? 2 : storm ? 10 : forest ? 7 : 6} rayleigh={night ? 0.6 : storm ? 0.4 : forest ? 3 : 2.2} />
+      <Sky distance={4000} sunPosition={night ? [-60, 4, -100] : storm ? [30, 18, -60] : autumn ? [-70, 9, -45] : forest ? [55, 13, -90] : [80, 28, -120]} turbidity={night ? 2 : storm ? 10 : autumn ? 8 : forest ? 7 : 6} rayleigh={night ? 0.6 : storm ? 0.4 : autumn ? 3.2 : forest ? 3 : 2.2} />
       {night && <Stars radius={220} depth={60} count={3000} factor={5} saturation={0} fade speed={0.6} />}
-      <fog attach="fog" args={night ? ["#131b2a", 22, 125] : storm ? ["#59636e", 9, 92] : forest ? ["#c9b98f", 34, 175] : ["#c8b08a", 55, 220]} />
-      <hemisphereLight args={night ? ["#5a6f9e", "#14120e", 0.22] : storm ? ["#6d7683", "#2c2f28", 0.38] : forest ? ["#ffe9c4", "#43502f", 0.7] : ["#bfd6ff", "#7a6a4f", 0.75]} />
+      <fog attach="fog" args={night ? ["#131b2a", 22, 125] : storm ? ["#59636e", 9, 92] : autumn ? ["#dfa06a", 30, 165] : forest ? ["#c9b98f", 34, 175] : ["#c8b08a", 55, 220]} />
+      <hemisphereLight args={night ? ["#5a6f9e", "#14120e", 0.22] : storm ? ["#6d7683", "#2c2f28", 0.38] : autumn ? ["#ffd9a8", "#5a4632", 0.6] : forest ? ["#ffe9c4", "#43502f", 0.7] : ["#bfd6ff", "#7a6a4f", 0.75]} />
       <directionalLight
         position={night ? [-40, 55, -25] : [50, 60, -30]}
-        intensity={night ? 0.4 : storm ? 0.75 : 2.2}
-        color={night ? "#aebfff" : storm ? "#cfd6dd" : forest ? "#ffe3ae" : "#fff1d6"}
+        intensity={night ? 0.4 : storm ? 0.75 : autumn ? 1.9 : 2.2}
+        color={night ? "#aebfff" : storm ? "#cfd6dd" : autumn ? "#ffb877" : forest ? "#ffe3ae" : "#fff1d6"}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-70}
@@ -413,8 +472,9 @@ export default function World() {
       />
 
       {storm && !night && <Rain />}
+      {autumn && !night && <FallingLeaves />}
 
-      {!forest && (
+      {!woods && (
         <>
       {/* ground */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
@@ -523,12 +583,18 @@ export default function World() {
         </>
       )}
 
-      {forest && (
+      {woods && (
         <>
           {/* forest floor */}
           <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
             <planeGeometry args={[130, 130]} />
-            {forestTex ? (
+            {autumn ? (
+              autumnTex ? (
+                <meshStandardMaterial map={autumnTex} roughness={1} metalness={0} />
+              ) : (
+                <meshStandardMaterial color="#6e5636" roughness={1} />
+              )
+            ) : forestTex ? (
               <meshStandardMaterial map={forestTex} roughness={1} metalness={0} />
             ) : (
               <meshStandardMaterial color="#57603c" roughness={1} />
@@ -556,9 +622,15 @@ export default function World() {
             </mesh>
           ))}
 
-          {FOREST_TREES.map((t, i) => (
-            <Pine key={i} position={[t.x, 0, t.z]} s={t.s} />
-          ))}
+          {FOREST_TREES.map((t, i) =>
+            autumn ? (
+              <LeafyTree key={i} position={[t.x, 0, t.z]} s={t.s * 1.05} gold seed={i * 1.7 + 1} />
+            ) : i % 3 === 2 ? (
+              <Pine key={i} position={[t.x, 0, t.z]} s={t.s} />
+            ) : (
+              <LeafyTree key={i} position={[t.x, 0, t.z]} s={t.s * 1.05} seed={i * 1.7 + 1} />
+            )
+          )}
           {FOREST_CABINS.map((c, i) => (
             <Cabin key={i} position={[c.x, 0, c.z]} rotation={c.r} />
           ))}
@@ -578,11 +650,17 @@ export default function World() {
           <Floodlight position={[-14, 0, -28]} />
           <Floodlight position={[30, 0, 14]} />
 
-          {/* giant pines beyond the palisade */}
+          {/* giant trees beyond the palisade */}
           {Array.from({ length: 16 }).map((_, i) => {
             const a = (i / 16) * Math.PI * 2 + 0.2;
             const r = 78 + (i % 3) * 9;
-            return <Pine key={"outer" + i} position={[Math.cos(a) * r, 0, Math.sin(a) * r]} s={2.4 + (i % 4) * 0.5} />;
+            return autumn ? (
+              <LeafyTree key={"outer" + i} position={[Math.cos(a) * r, 0, Math.sin(a) * r]} s={(2.4 + (i % 4) * 0.5) * 1.05} gold seed={i * 2.3} />
+            ) : i % 2 === 0 ? (
+              <LeafyTree key={"outer" + i} position={[Math.cos(a) * r, 0, Math.sin(a) * r]} s={(2.4 + (i % 4) * 0.5) * 1.05} seed={i * 2.3} />
+            ) : (
+              <Pine key={"outer" + i} position={[Math.cos(a) * r, 0, Math.sin(a) * r]} s={2.4 + (i % 4) * 0.5} />
+            );
           })}
         </>
       )}
@@ -625,6 +703,45 @@ function Rain() {
   return (
     <points ref={ref} geometry={geo} frustumCulled={false}>
       <pointsMaterial color="#aebfd4" size={0.14} transparent opacity={0.55} sizeAttenuation depthWrite={false} />
+    </points>
+  );
+}
+
+/** Autumn: golden leaves drifting down through the whole arena. */
+function FallingLeaves() {
+  const ref = useRef<THREE.Points>(null);
+  const geo = useMemo(() => {
+    const n = 320;
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 115;
+      arr[i * 3 + 1] = Math.random() * 16;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 115;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+    return g;
+  }, []);
+  useFrame((state, dt) => {
+    const pts = ref.current;
+    if (!pts) return;
+    const t = state.clock.elapsedTime;
+    const a = (geo.getAttribute("position") as THREE.BufferAttribute).array as Float32Array;
+    const fall = Math.min(dt, 0.05) * 1.7;
+    for (let i = 0; i < a.length; i += 3) {
+      a[i + 1] -= fall;
+      a[i] += Math.sin(t * 1.8 + i) * dt * 0.9;
+      if (a[i + 1] < 0) {
+        a[i + 1] = 16;
+        a[i] = (Math.random() - 0.5) * 115;
+        a[i + 2] = (Math.random() - 0.5) * 115;
+      }
+    }
+    (geo.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+  });
+  return (
+    <points ref={ref} geometry={geo} frustumCulled={false}>
+      <pointsMaterial color="#e8a83e" size={0.17} transparent opacity={0.85} sizeAttenuation depthWrite={false} />
     </points>
   );
 }

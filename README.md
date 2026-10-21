@@ -33,6 +33,14 @@ Production: `npm run build && npm start`. Desktop Chrome/Edge recommended (point
 - **2 new achievements** — SKYFALL (down the gunship) and STORM RIDER (clear a storm wave), 10 total.
 - Boss bar and minimap handle both bosses; the gunship plots as the ringed magenta dot.
 
+
+## V6 — EVERFALL
+
+- **Leafy trees** — the cone pines are gone from the woods: big broadleaf trees now (thick trunks, clustered canopies, gentle sway), green on Forest Outpost with a few pines left, all golden on the new map.
+- **Autumn Ridge** (third map) — the outpost at sunset: golden canopy, warm haze, leaf-litter ground and **falling leaves** in the air all match.
+- **Stalker** (woods maps, wave 7+) — a ghillie-suited ambusher. Near-invisible while he holds still (16% opacity, flickers on the minimap); stray within 9 m or wound him and he rushes you at runner speed, fighting at shotgun range.
+- **2 new achievements** — TIMBER (down a Stalker) and AUTUMN OPERATOR (win a run on Autumn Ridge). 12 total.
+
 ## Controls
 
 | Input | Action |
