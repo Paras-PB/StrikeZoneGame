@@ -25,6 +25,9 @@ export default function HUD() {
   const bossHealth = useGameStore((s) => s.bossHealth);
   const bossMax = useGameStore((s) => s.bossMax);
   const grenades = useGameStore((s) => s.grenades);
+  const turrets = useGameStore((s) => s.turrets);
+  const airstrikes = useGameStore((s) => s.airstrikes);
+  const mapId = useGameStore((s) => s.mapId);
   const objective = useGameStore((s) => s.objective);
   const objectiveTimeLeft = useGameStore((s) => s.objectiveTimeLeft);
   const playerInZone = useGameStore((s) => s.playerInZone);
@@ -102,6 +105,7 @@ export default function HUD() {
         <div className="text-center">
           <div className="text-[10px] tracking-[0.25em] text-orange-400 font-bold">WAVE</div>
           <div className="text-2xl font-black leading-none">{wave || "—"}</div>
+          <div className="text-[9px] tracking-[0.2em] text-white/45 font-bold mt-0.5">{mapId === "forest" ? "🌲 FOREST" : "🏭 ARENA"}</div>
         </div>
         <div className="w-px h-8 bg-white/15" />
         <div className="text-center">
@@ -212,10 +216,15 @@ export default function HUD() {
           <span className={active === "ar" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>1 AR</span>{" "}
           <span className={active === "smg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>2 SMG</span>{" "}
           <span className={active === "sg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>3 SG</span>{" "}
-          <span className={active === "sn" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>4 SNIPER</span>
+          <span className={active === "sn" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>4 SNIPER</span>{" "}
+          <span className={active === "saw" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>5 SAW</span>
         </div>
         <div className="mt-1 text-[11px] text-white/60">
           <span className={grenades > 0 ? "text-orange-300 font-bold" : ""}>G FRAG ×{grenades}</span>
+          {" · "}
+          <span className={turrets > 0 ? "text-cyan-300 font-bold" : ""}>🤖 F SENTRY ×{turrets}</span>
+          {" · "}
+          <span className={airstrikes > 0 ? "text-red-300 font-bold animate-pulse" : ""}>✈ X AIRSTRIKE ×{airstrikes}</span>
           {overdrive && <span className="text-amber-300 font-bold"> · ⚡2× DMG</span>}
         </div>
       </div>

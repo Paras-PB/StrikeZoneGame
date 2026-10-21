@@ -1,6 +1,7 @@
 // Shared mutable game runtime (no react re-render per frame)
 import * as THREE from "three";
 import { useGameStore } from "@/lib/store";
+import type { MapId } from "@/lib/store";
 import { sfxExplosion } from "@/lib/audio";
 
 export interface AABB {
@@ -79,7 +80,7 @@ export function triggerSlowMo(ms = 850) {
 }
 
 // ---- enemy registry for hitscan ----
-export type EnemyKind = "soldier" | "runner" | "heavy" | "exploder" | "boss" | "drone";
+export type EnemyKind = "soldier" | "runner" | "heavy" | "exploder" | "boss" | "drone" | "marksman";
 
 /** Mesh scale per kind (hit spheres scale with it). */
 export const KIND_SCALE: Record<EnemyKind, number> = {
@@ -89,6 +90,7 @@ export const KIND_SCALE: Record<EnemyKind, number> = {
   exploder: 0.95,
   boss: 1.9,
   drone: 1,
+  marksman: 1,
 };
 
 /** Hitscan profile per kind: heights above feet + sphere radii. */
@@ -143,13 +145,25 @@ export interface BarrelDef {
   x: number;
   z: number;
 }
-export const BARREL_DEFS: BarrelDef[] = [
+export const ARENA_BARREL_DEFS: BarrelDef[] = [
   { id: 1, x: 1, z: -3 },
   { id: 2, x: -11, z: -21 },
   { id: 3, x: 24, z: 10 },
   { id: 4, x: -4, z: 17 },
   { id: 5, x: 12, z: -12 },
 ];
+
+export const FOREST_BARREL_DEFS: BarrelDef[] = [
+  { id: 1, x: -18, z: -14 },
+  { id: 2, x: 16, z: 20 },
+  { id: 3, x: 20, z: -22 },
+  { id: 4, x: -22, z: 12 },
+  { id: 5, x: 2, z: -26 },
+];
+
+export function barrelDefsFor(map: MapId): BarrelDef[] {
+  return map === "forest" ? FOREST_BARREL_DEFS : ARENA_BARREL_DEFS;
+}
 
 export interface BarrelEntry {
   id: number;
@@ -159,9 +173,14 @@ export interface BarrelEntry {
 }
 
 export const barrelRegistry: Map<number, BarrelEntry> = new Map();
-for (const d of BARREL_DEFS) {
-  barrelRegistry.set(d.id, { id: d.id, pos: new THREE.Vector3(d.x, 0.55, d.z), alive: true, radius: 0.62 });
+
+export function setupBarrels(map: MapId) {
+  barrelRegistry.clear();
+  for (const d of barrelDefsFor(map)) {
+    barrelRegistry.set(d.id, { id: d.id, pos: new THREE.Vector3(d.x, 0.55, d.z), alive: true, radius: 0.62 });
+  }
 }
+setupBarrels("arena");
 
 export function resetBarrels() {
   for (const b of barrelRegistry.values()) b.alive = true;
@@ -271,4 +290,31 @@ export function explodeAt(
     }
   }
   return killed;
+}
+
+// ---- V4: deployable sentry turret (stepped by components/Turret.tsx) ----
+export interface TurretState {
+  pos: THREE.Vector3; // feet position
+  until: number; // performance.now() deadline
+}
+export let turretState: TurretState | null = null;
+export function deployTurret(pos: THREE.Vector3) {
+  turretState = { pos: pos.clone(), until: performance.now() + 45000 };
+}
+export function clearTurret() {
+  turretState = null;
+}
+
+// ---- V4: airstrike (stepped by components/Airstrike.tsx) ----
+export interface AirstrikeState {
+  x: number;
+  z: number;
+  startedAt: number;
+}
+export let airstrikeState: AirstrikeState | null = null;
+export function callAirstrike(x: number, z: number) {
+  airstrikeState = { x, z, startedAt: performance.now() };
+}
+export function clearAirstrike() {
+  airstrikeState = null;
 }

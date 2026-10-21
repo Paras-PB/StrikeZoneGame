@@ -2,7 +2,8 @@
 import { useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
-import { BARREL_DEFS, barrelRegistry } from "@/lib/game";
+import { barrelDefsFor, barrelRegistry } from "@/lib/game";
+import { useGameStore } from "@/lib/store";
 
 /**
  * Explosive barrels. Their meshes live here (not in World) so visibility can
@@ -11,6 +12,7 @@ import { BARREL_DEFS, barrelRegistry } from "@/lib/game";
  */
 export default function Barrels() {
   const groups = useRef(new Map<number, THREE.Group>());
+  const mapId = useGameStore((s) => s.mapId);
 
   useFrame(() => {
     for (const [id, g] of groups.current) {
@@ -21,7 +23,7 @@ export default function Barrels() {
 
   return (
     <group>
-      {BARREL_DEFS.map((d) => (
+      {barrelDefsFor(mapId).map((d) => (
         <group
           key={d.id}
           position={[d.x, 0, d.z]}

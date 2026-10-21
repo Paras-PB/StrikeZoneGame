@@ -24,6 +24,8 @@ interface Bot {
   scaleF: number;
   exploded: boolean;
   enraged: boolean;
+  aiming: boolean;
+  aimT: number;
 }
 
 let botId = 1;
@@ -35,6 +37,12 @@ const ZONE_SPOTS: [number, number][] = [
   [16, 14],
   [0, -6],
 ];
+const FOREST_ZONE_SPOTS: [number, number][] = [
+  [0, 18],
+  [-12, -14],
+  [16, -16],
+  [4, -2],
+];
 
 const KIND_STATS: Record<EnemyKind, { hp: number; speed: number; scale: number; dmg: number }> = {
   soldier: { hp: 1, speed: 1, scale: 1, dmg: 1 },
@@ -43,6 +51,7 @@ const KIND_STATS: Record<EnemyKind, { hp: number; speed: number; scale: number; 
   exploder: { hp: 0.7, speed: 1.45, scale: 0.95, dmg: 1 },
   boss: { hp: 1, speed: 0.55, scale: 1.9, dmg: 2 },
   drone: { hp: 0.45, speed: 1.05, scale: 1, dmg: 0.8 },
+  marksman: { hp: 0.8, speed: 0.5, scale: 1, dmg: 1 },
 };
 
 const KIND_STYLE: Record<EnemyKind, { torso: string; vest: string; visor: string }> = {
@@ -52,6 +61,7 @@ const KIND_STYLE: Record<EnemyKind, { torso: string; vest: string; visor: string
   exploder: { torso: "#6e1f1f", vest: "#3a0f0f", visor: "#ff2a2a" },
   boss: { torso: "#571622", vest: "#1a0508", visor: "#ff2ad4" },
   drone: { torso: "#2c3540", vest: "#171b21", visor: "#39d0ff" },
+  marksman: { torso: "#31473a", vest: "#131a15", visor: "#ffb02a" },
 };
 
 function SoldierMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }) {
@@ -107,10 +117,16 @@ function SoldierMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }
         <boxGeometry args={[0.14, 0.14, 0.6]} />
         <meshStandardMaterial color={c.torso} roughness={0.9} />
       </mesh>
-      <mesh castShadow position={[0.18, 1.25, -0.55]}>
-        <boxGeometry args={[0.08, 0.12, 0.75]} />
+      <mesh castShadow position={[0.18, 1.25, bot.kind === "marksman" ? -0.75 : -0.55]}>
+        <boxGeometry args={[0.08, 0.12, bot.kind === "marksman" ? 1.2 : 0.75]} />
         <meshStandardMaterial color="#101216" metalness={0.5} roughness={0.5} />
       </mesh>
+      {bot.kind === "marksman" && (
+        <mesh position={[0.18, 1.38, -0.6]}>
+          <boxGeometry args={[0.06, 0.07, 0.22]} />
+          <meshStandardMaterial color="#0c0d0f" metalness={0.6} roughness={0.4} />
+        </mesh>
+      )}
       {/* head + helmet */}
       <mesh castShadow position={[0, 1.72, 0]}>
         <sphereGeometry args={[0.2, 12, 12]} />
@@ -230,10 +246,11 @@ export default function Enemies() {
 
   function pickKind(w: number): EnemyKind {
     const r = Math.random();
-    if (w >= 4 && r < 0.12) return "heavy";
-    if (w >= 5 && r < 0.27) return "drone";
-    if (w >= 3 && r < 0.47) return "exploder";
-    if (w >= 2 && r < 0.72) return "runner";
+    if (w >= 6 && r < 0.1) return "marksman";
+    if (w >= 4 && r < 0.2) return "heavy";
+    if (w >= 5 && r < 0.33) return "drone";
+    if (w >= 3 && r < 0.5) return "exploder";
+    if (w >= 2 && r < 0.74) return "runner";
     return "soldier";
   }
 
@@ -274,6 +291,8 @@ export default function Enemies() {
       scaleF: st.scale,
       exploded: false,
       enraged: false,
+      aiming: false,
+      aimT: 0,
     };
     bots.current.push(b);
     enemyRegistry.set(b.id, {
@@ -305,7 +324,8 @@ export default function Enemies() {
     const defend = isDefendWave(w, bossWave);
 
     if (defend) {
-      const [zx, zz] = ZONE_SPOTS[w % ZONE_SPOTS.length];
+      const spots = s.mapId === "forest" ? FOREST_ZONE_SPOTS : ZONE_SPOTS;
+      const [zx, zz] = spots[w % spots.length];
       s.set({ objective: "defend", objectiveTimeLeft: 60, zoneX: zx, zoneZ: zz, playerInZone: false });
       defendSpawnT.current = 2.4;
       for (let i = 0; i < 5; i++) spawnBot(w === 1 ? "soldier" : pickKind(w), w);
@@ -337,6 +357,29 @@ export default function Enemies() {
     force();
   }
 
+  function losBlocked(from: THREE.Vector3, to: THREE.Vector3): boolean {
+    const dir = to.clone().sub(from);
+    const len = dir.length();
+    dir.normalize();
+    for (const c of colliders) {
+      let tmin = 0, tmax = len;
+      let ok = true;
+      for (const ax of ["x", "y", "z"] as const) {
+        const o = from[ax], d = dir[ax];
+        if (Math.abs(d) < 1e-8) {
+          if (o < c.min[ax] || o > c.max[ax]) { ok = false; break; }
+        } else {
+          let t1 = (c.min[ax] - o) / d, t2 = (c.max[ax] - o) / d;
+          if (t1 > t2) [t1, t2] = [t2, t1];
+          tmin = Math.max(tmin, t1); tmax = Math.min(tmax, t2);
+          if (tmin > tmax) { ok = false; break; }
+        }
+      }
+      if (ok && tmin > 1 && tmin < len - 1) return true;
+    }
+    return false;
+  }
+
   useFrame((state, rawDt) => {
     const dt = Math.min(rawDt, 0.05) * timeState.scale;
     const s = useGameStore.getState();
@@ -366,6 +409,7 @@ export default function Enemies() {
         if (reg.health !== b.health) b.health = reg.health;
         if (b.health <= 0) {
           b.alive = false;
+          b.aiming = false;
           b.deathT = 0;
           reg.alive = false;
           if (b.kind === "boss") s.set({ bossHealth: 0 });
@@ -432,8 +476,9 @@ export default function Enemies() {
       const px = -tmpV.z * strafe;
       const pz = tmpV.x * strafe;
       const wantDist =
-        b.kind === "exploder" ? 0.5 : b.kind === "runner" ? 5 : b.kind === "heavy" ? 8.5 : b.kind === "boss" ? 9 : b.kind === "drone" ? 13 : 6.5;
+        b.kind === "exploder" ? 0.5 : b.kind === "runner" ? 5 : b.kind === "heavy" ? 8.5 : b.kind === "boss" ? 9 : b.kind === "drone" ? 13 : b.kind === "marksman" ? 24 : 6.5;
       let approach = dist > wantDist ? 1.35 : dist < 4 && b.kind !== "drone" ? -0.8 : 0.3;
+      if (b.kind === "marksman") approach = dist > 27 ? 1.1 : dist < 18 ? -1 : 0;
       // long-range rush burst closes the gap fast
       let rush = dist > 22 ? 1.4 : dist > 14 ? 1.2 : 1;
       const vx = (tmpV.x * approach + px * 0.65) * b.speed * rush;
@@ -472,10 +517,38 @@ export default function Enemies() {
         reg.health = b.health;
       }
 
+      // marksman: telegraphed laser aim, then one heavy shot
+      if (b.kind === "marksman") {
+        const mFrom = new THREE.Vector3(b.pos.x, b.pos.y + 1.45, b.pos.z);
+        const mTo = new THREE.Vector3(playerState.pos.x, playerState.pos.y + 1.35, playerState.pos.z);
+        const clear = dist < 47 && !losBlocked(mFrom, mTo);
+        if (b.aiming) {
+          if (!clear) {
+            b.aiming = false;
+            b.shootCd = 0.6;
+          } else {
+            b.aimT -= dt;
+            if (b.aimT <= 0) {
+              b.aiming = false;
+              b.shootCd = 2.4 + Math.random() * 0.9;
+              pushTracer(mFrom, mTo, true);
+              sfxEnemyShoot();
+              damagePlayer((20 + s.wave * 0.8) * b.dmgMult);
+            }
+          }
+        } else {
+          b.shootCd -= dt;
+          if (b.shootCd <= 0 && clear && dist > 6) {
+            b.aiming = true;
+            b.aimT = 1.15;
+          }
+        }
+      }
+
       // shooting (exploders never shoot — they are the bullet)
-      b.shootCd -= dt;
+      if (b.kind !== "marksman") b.shootCd -= dt;
       const eyeY = b.kind === "drone" ? DRONE_HOVER : 1.4;
-      if (b.kind !== "exploder" && b.shootCd <= 0 && dist < 48 && dist > 3) {
+      if (b.kind !== "exploder" && b.kind !== "marksman" && b.shootCd <= 0 && dist < 48 && dist > 3) {
         // LOS check: sample ray vs colliders coarsely
         const from = new THREE.Vector3(b.pos.x, b.pos.y + eyeY, b.pos.z);
         const to = new THREE.Vector3(playerState.pos.x, playerState.pos.y + 1.4, playerState.pos.z);
@@ -600,7 +673,9 @@ export default function Enemies() {
               smg: { mag: 40, reserve: Math.min(300, st.ammo.smg.reserve + 80) },
               sg: { mag: 6, reserve: Math.min(48, st.ammo.sg.reserve + 12) },
               sn: { mag: 5, reserve: Math.min(40, st.ammo.sn.reserve + 8) },
+              saw: { mag: 100, reserve: Math.min(400, st.ammo.saw.reserve + 120) },
             },
+            turrets: Math.min(2, st.turrets + (s.wave % 2 === 0 ? 1 : 0)),
           });
           // offer a perk before the next wave
           const pool = [...PERK_POOL];
@@ -641,6 +716,35 @@ export default function Enemies() {
           <SoldierMesh key={id} bot={b} refs={groups.current} />
         );
       })}
+      {renderIds.map((id) => {
+        const b = byId.get(id);
+        if (!b || b.kind !== "marksman") return null;
+        return <LaserBeam key={"laser" + id} bot={b} />;
+      })}
     </group>
+  );
+}
+
+/** Marksman aim laser: a thin red beam from his rifle to the player while he aims. */
+function LaserBeam({ bot }: { bot: Bot }) {
+  const mesh = useRef<THREE.Mesh>(null);
+  const mid = useMemo(() => new THREE.Vector3(), []);
+  useFrame(() => {
+    const m = mesh.current;
+    if (!m) return;
+    m.visible = bot.alive && bot.aiming;
+    if (!m.visible) return;
+    const from = new THREE.Vector3(bot.pos.x, bot.pos.y + 1.45, bot.pos.z);
+    const to = new THREE.Vector3(playerState.pos.x, playerState.pos.y + 1.35, playerState.pos.z);
+    mid.addVectors(from, to).multiplyScalar(0.5);
+    m.position.copy(mid);
+    m.scale.set(1, 1, from.distanceTo(to));
+    m.lookAt(to);
+  });
+  return (
+    <mesh ref={mesh} visible={false}>
+      <boxGeometry args={[0.025, 0.025, 1]} />
+      <meshBasicMaterial color="#ff2222" transparent opacity={0.75} depthWrite={false} />
+    </mesh>
   );
 }

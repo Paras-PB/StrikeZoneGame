@@ -159,6 +159,24 @@ export default function WeaponModel({ flash }: { flash: MutableRefObject<number>
         <group scale={[1.12, 1.05, 0.85]}>
           <Gun color="#44402a" accent="#e08a1e" len={0.8} />
         </group>
+      ) : active === "saw" ? (
+        <group scale={[1.18, 1.12, 1]}>
+          <Gun color="#3d3a2e" accent="#7ac74f" len={1.0} />
+          {/* belt ammo box */}
+          <mesh castShadow position={[0, -0.22, -0.08]}>
+            <boxGeometry args={[0.16, 0.15, 0.3]} />
+            <meshStandardMaterial color="#2c2a20" roughness={0.6} metalness={0.4} />
+          </mesh>
+          {/* bipod */}
+          <mesh position={[0.05, -0.16, -0.72]} rotation={[0.35, 0, 0.3]}>
+            <boxGeometry args={[0.03, 0.24, 0.03]} />
+            <meshStandardMaterial color="#14161a" metalness={0.6} roughness={0.4} />
+          </mesh>
+          <mesh position={[-0.05, -0.16, -0.72]} rotation={[0.35, 0, -0.3]}>
+            <boxGeometry args={[0.03, 0.24, 0.03]} />
+            <meshStandardMaterial color="#14161a" metalness={0.6} roughness={0.4} />
+          </mesh>
+        </group>
       ) : (
         <group scale={[0.92, 0.95, 1.3]}>
           <Gun color="#26332a" accent="#c8a028" len={1.05} />

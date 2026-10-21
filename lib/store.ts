@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
-export type WeaponId = "ar" | "smg" | "sg" | "sn";
+export type WeaponId = "ar" | "smg" | "sg" | "sn" | "saw";
+export type MapId = "arena" | "forest";
 export type Phase = "menu" | "playing" | "perk" | "dead" | "victory";
 
 export interface WeaponDef {
@@ -77,6 +78,20 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     auto: true,
     range: 240,
   },
+  saw: {
+    id: "saw",
+    name: "M249 SAW",
+    damage: 12,
+    headMult: 1.6,
+    rpm: 800,
+    mag: 100,
+    reserve: 300,
+    reloadTime: 4.0,
+    spreadHip: 0.045,
+    spreadAds: 0.012,
+    auto: true,
+    range: 100,
+  },
 };
 
 const fullAmmo = (): Record<WeaponId, { mag: number; reserve: number }> => ({
@@ -84,6 +99,7 @@ const fullAmmo = (): Record<WeaponId, { mag: number; reserve: number }> => ({
   smg: { mag: WEAPONS.smg.mag, reserve: WEAPONS.smg.reserve },
   sg: { mag: WEAPONS.sg.mag, reserve: WEAPONS.sg.reserve },
   sn: { mag: WEAPONS.sn.mag, reserve: WEAPONS.sn.reserve },
+  saw: { mag: WEAPONS.saw.mag, reserve: WEAPONS.saw.reserve },
 });
 
 // ---- perks (chosen between waves) ----
@@ -202,6 +218,10 @@ interface GameState {
   // V3: grenades & overdrive
   grenades: number;
   overdriveUntil: number;
+  // V4: map + support weapons
+  mapId: MapId;
+  turrets: number;
+  airstrikes: number;
   // V3: objective waves
   objective: "elim" | "defend";
   objectiveTimeLeft: number;
@@ -268,6 +288,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   perksOwned: [],
   grenades: 3,
   overdriveUntil: 0,
+  mapId: "arena",
+  turrets: 1,
+  airstrikes: 0,
   objective: "elim",
   objectiveTimeLeft: 0,
   zoneX: 0,
@@ -313,6 +336,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       perksOwned: [],
       grenades: 3,
       overdriveUntil: 0,
+      turrets: 1,
+      airstrikes: 0,
       objective: "elim",
       objectiveTimeLeft: 0,
       playerInZone: false,

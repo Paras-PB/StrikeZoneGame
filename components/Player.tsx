@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { WEAPONS, useGameStore } from "@/lib/store";
-import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo, hitProfile, spawnGrenade } from "@/lib/game";
+import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo, hitProfile, spawnGrenade, turretState, deployTurret, callAirstrike } from "@/lib/game";
 import type { EnemyKind } from "@/lib/game";
 import type { BarrelEntry } from "@/lib/game";
 import { sfxShoot, sfxReload, sfxEmpty, sfxHit, sfxHeadshot, sfxStep } from "@/lib/audio";
@@ -71,6 +71,23 @@ export default function Player() {
       if (e.code === "Digit2") s.set({ activeWeapon: "smg", reloading: false });
       if (e.code === "Digit3") s.set({ activeWeapon: "sg", reloading: false });
       if (e.code === "Digit4") s.set({ activeWeapon: "sn", reloading: false });
+      if (e.code === "Digit5") s.set({ activeWeapon: "saw", reloading: false });
+      if (e.code === "KeyF" && s.turrets > 0 && !turretState) {
+        deployTurret(playerState.pos.clone());
+        s.set({ turrets: s.turrets - 1 });
+        s.addKillfeed("🤖 SENTRY DEPLOYED — 45s");
+      }
+      if (e.code === "KeyX" && s.airstrikes > 0) {
+        const dir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(playerState.pitch, playerState.yaw, 0, "YXZ"));
+        const eyeY = playerState.pos.y + 1.6;
+        let t = 22;
+        if (dir.y < -0.05) t = Math.min(60, eyeY / -dir.y);
+        const tx = Math.max(-50, Math.min(50, playerState.pos.x + dir.x * t));
+        const tz = Math.max(-50, Math.min(50, playerState.pos.z + dir.z * t));
+        callAirstrike(tx, tz);
+        s.set({ airstrikes: s.airstrikes - 1 });
+        s.addKillfeed("✈ AIRSTRIKE INBOUND");
+      }
       if (e.code === "KeyG" && s.grenades > 0) {
         s.set({ grenades: s.grenades - 1 });
         spawnGrenade();
@@ -138,8 +155,9 @@ export default function Player() {
     const pts = base * mult;
     const newHeadshots = st.headshots + (head ? 1 : 0);
     const newBarrelKills = st.barrelKills + (opts?.barrel ? 1 : 0);
+    const newKills = st.kills + 1;
     st.set({
-      kills: st.kills + 1,
+      kills: newKills,
       score: st.score + pts,
       combo,
       lastKillAt: now,
@@ -148,6 +166,10 @@ export default function Player() {
       headshots: newHeadshots,
       barrelKills: newBarrelKills,
     });
+    if (newKills % 25 === 0) {
+      st.set({ airstrikes: st.airstrikes + 1 });
+      st.addKillfeed("✈ AIRSTRIKE READY — PRESS X");
+    }
     st.unlockAch("firstblood");
     if (opts?.kind === "boss") st.unlockAch("bossslayer");
     if (combo >= 5) st.unlockAch("rampage");

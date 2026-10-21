@@ -9,6 +9,8 @@ import Barrels from "./Barrels";
 import Zone from "./Zone";
 import Grenades from "./Grenades";
 import SupplyDrop from "./SupplyDrop";
+import Turret from "./Turret";
+import Airstrike from "./Airstrike";
 import { playerState } from "@/lib/game";
 import { useGameStore } from "@/lib/store";
 
@@ -109,6 +111,8 @@ export default function GameCanvas() {
           <SupplyDrop />
           <Player />
           <Grenades />
+          <Turret />
+          <Airstrike />
           <Enemies />
           <Effects />
         </Suspense>
