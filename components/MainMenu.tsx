@@ -54,8 +54,8 @@ export default function MainMenu() {
   const isVictory = phase === "victory";
 
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-b from-black/80 via-black/60 to-black/85 backdrop-blur-[2px]">
-      <div className="max-w-2xl w-full mx-4 text-center">
+    <div className="absolute inset-0 z-10 flex justify-center overflow-y-auto bg-gradient-to-b from-black/80 via-black/60 to-black/85 backdrop-blur-[2px]">
+      <div className="max-w-3xl w-full mx-4 my-auto py-6 text-center">
         <div className="text-orange-500 font-black tracking-[0.4em] text-sm mb-2">TACTICAL COMBAT SIMULATOR</div>
         <h1 className="text-7xl font-black tracking-tighter leading-none mb-1">
           STRIKE<span className="text-orange-500">ZONE</span>
@@ -121,6 +121,49 @@ export default function MainMenu() {
             </ul>
           </div>
         </div>
+
+        {phase === "menu" && (
+          <>
+            <div className="bg-white/5 border border-white/10 rounded p-4 text-left mb-3">
+              <div className="font-bold text-orange-400 text-xs tracking-widest mb-3">⌨️ KEY GUIDE — EVERY CONTROL</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-5 gap-y-2">
+                {[
+                  ["W A S D", "Move"],
+                  ["MOUSE", "Aim / look around"],
+                  ["LMB", "Fire weapon"],
+                  ["RMB", "Aim down sights · sniper scope on weapon 4"],
+                  ["SHIFT", "Sprint"],
+                  ["SPACE", "Jump"],
+                  ["C / CTRL", "Slide — needs speed, chain into jumps"],
+                  ["R", "Reload"],
+                  ["G", "Throw frag grenade"],
+                  ["1", "Weapon 1 — MK-7 AR"],
+                  ["2", "Weapon 2 — VK-9 SMG"],
+                  ["3", "Weapon 3 — BR-12 Shotgun"],
+                  ["4", "Weapon 4 — L96 Sniper"],
+                  ["ESC", "Release the mouse"],
+                  ["CLICK", "Choose a perk card between waves"],
+                ].map(([k, action]) => (
+                  <div key={k} className="flex items-center gap-2">
+                    <span className="shrink-0 bg-white/10 border border-white/25 rounded px-1.5 py-0.5 font-mono font-bold text-[11px] text-white">{k}</span>
+                    <span className="text-xs text-white/75 leading-tight">{action}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded p-4 text-left mb-6">
+              <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">🎯 HOW TO PLAY</div>
+              <ul className="text-xs text-white/75 space-y-1.5 leading-relaxed">
+                <li>• Clear every hostile to finish a wave — then <b className="text-white">click 1 of 3 perk cards</b> to upgrade before the next wave.</li>
+                <li>• 🛡️ <b className="text-white">Waves 4 &amp; 8 — Defend the Zone:</b> stand inside the glowing ring until the 60-second timer finishes.</li>
+                <li>• 📦 A <b className="text-white">supply drop</b> lands every wave — run to the crate for a medkit, ammo, grenades or Overdrive (double damage).</li>
+                <li>• 💥 <b className="text-white">Red barrels explode</b> — shoot them near groups. Watch for Exploders (glowing chest) and drones in the sky from wave 5.</li>
+                <li>• ☠️ <b className="text-white">Wave 10 — the Juggernaut.</b> Beat him to win, then choose <b className="text-white">∞ Endless</b> to see how far you get. Health slowly regenerates if you avoid fire.</li>
+              </ul>
+            </div>
+          </>
+        )}
 
         <div className="flex gap-3 justify-center flex-wrap">
           <button
