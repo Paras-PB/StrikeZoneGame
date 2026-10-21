@@ -318,3 +318,56 @@ export function callAirstrike(x: number, z: number) {
 export function clearAirstrike() {
   airstrikeState = null;
 }
+
+// ---- V4 forest layout (shared by World.tsx rendering/colliders and the minimap) ----
+// seeded scatter so the forest is identical every load (and colliders match)
+function mulberry32(seed: number) {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const FOREST_CABINS: { x: number; z: number; r: number }[] = [
+  { x: -22, z: -18, r: 0.15 },
+  { x: 20, z: 24, r: -0.2 },
+  { x: -26, z: 16, r: 0.1 },
+];
+const FOREST_TOWER: [number, number] = [24, -26];
+const FOREST_ROCKS: { x: number; z: number; s: number }[] = [
+  { x: 10, z: 6, s: 1.2 },
+  { x: -8, z: -24, s: 1 },
+  { x: 28, z: 2, s: 1.4 },
+  { x: -30, z: -4, s: 1.1 },
+  { x: 14, z: 34, s: 0.9 },
+  { x: -16, z: 30, s: 1.3 },
+];
+const FOREST_ZONE_CLEARINGS: [number, number][] = [
+  [0, 18],
+  [-12, -14],
+  [16, -16],
+  [4, -2],
+];
+
+const FOREST_TREES: { x: number; z: number; s: number }[] = (() => {
+  const rand = mulberry32(1337);
+  const out: { x: number; z: number; s: number }[] = [];
+  let tries = 0;
+  while (out.length < 46 && tries < 600) {
+    tries++;
+    const x = (rand() * 2 - 1) * 52;
+    const z = (rand() * 2 - 1) * 52;
+    if (Math.abs(x) < 9 && z > 2 && z < 28) continue; // spawn clearing
+    if (FOREST_ZONE_CLEARINGS.some(([zx, zz]) => Math.hypot(x - zx, z - zz) < 8.5)) continue;
+    if (FOREST_CABINS.some((c) => Math.hypot(x - c.x, z - c.z) < 7)) continue;
+    if (Math.hypot(x - FOREST_TOWER[0], z - FOREST_TOWER[1]) < 6.5) continue;
+    if (FOREST_ROCKS.some((r) => Math.hypot(x - r.x, z - r.z) < 3.4)) continue;
+    if (out.some((t) => Math.hypot(x - t.x, z - t.z) < 3.4)) continue;
+    out.push({ x, z, s: 0.85 + rand() * 0.55 });
+  }
+  return out;
+})();
+export { FOREST_CABINS, FOREST_TOWER, FOREST_ROCKS, FOREST_ZONE_CLEARINGS, FOREST_TREES };

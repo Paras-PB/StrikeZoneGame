@@ -20,6 +20,7 @@ Production: `npm run build && npm start`. Desktop Chrome/Edge recommended (point
 - **Sentry turret (F)** — earn one every 2 waves (start with 1, hold max 2). Deploys where you stand and auto-fires at the nearest hostile for 45 seconds. Sentry kills pay +100.
 - **Marksman enemy** (wave 6+) — keeps ~24 m distance, paints you with a visible red laser for ~1.15 s, then fires one heavy shot. Break line of sight to cancel his aim.
 - **M249 SAW** (key 5) — belt-fed LMG: 100-round mag, 800 rpm, built for crowds.
+- **Tactical minimap** — live top-down map (top-left): red dots are hostiles moving in real time (magenta = Juggernaut, orange = Marksman), white arrow is you, plus zone ring, barrels, sentry and airstrike markers.
 - **Airstrike (X)** — every 25 kills earns one. Call it on your aim point: a red target ring marks the zone, then 6 shells land over ~1.6 s.
 
 ## Controls
