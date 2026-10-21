@@ -1,5 +1,7 @@
 "use client";
 import { useGameStore, WEAPONS } from "@/lib/store";
+import dynamic from "next/dynamic";
+const Minimap = dynamic(() => import("./Minimap"), { ssr: false });
 
 export default function HUD() {
   const health = useGameStore((s) => s.health);
@@ -138,7 +140,7 @@ export default function HUD() {
       )}
 
       {/* combo + night badges */}
-      <div className="absolute top-[74px] left-4 flex flex-col gap-1 items-start">
+      <div className="absolute top-[198px] left-4 flex flex-col gap-1 items-start">
         {comboLive && (
           <div className="bg-orange-600/80 px-3 py-1 rounded font-black tracking-widest text-sm animate-pulse">
             COMBO ×{Math.min(combo, 5)} — {combo} CHAIN
@@ -228,6 +230,8 @@ export default function HUD() {
           {overdrive && <span className="text-amber-300 font-bold"> · ⚡2× DMG</span>}
         </div>
       </div>
+
+      <Minimap />
 
       {/* click to re-lock */}
       <LockHint />
