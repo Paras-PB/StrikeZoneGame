@@ -80,7 +80,7 @@ export function triggerSlowMo(ms = 850) {
 }
 
 // ---- enemy registry for hitscan ----
-export type EnemyKind = "soldier" | "runner" | "heavy" | "exploder" | "boss" | "drone" | "marksman" | "gunship";
+export type EnemyKind = "soldier" | "runner" | "heavy" | "exploder" | "boss" | "drone" | "marksman" | "gunship" | "stalker";
 
 /** Mesh scale per kind (hit spheres scale with it). */
 export const KIND_SCALE: Record<EnemyKind, number> = {
@@ -92,6 +92,7 @@ export const KIND_SCALE: Record<EnemyKind, number> = {
   drone: 1,
   marksman: 1,
   gunship: 1,
+  stalker: 1,
 };
 
 /** Hitscan profile per kind: heights above feet + sphere radii. */
@@ -112,6 +113,7 @@ export interface EnemyEntry {
   speed: number;
   radius: number;
   kind: EnemyKind;
+  alerted?: boolean; // stalkers: false while cloaked in ambush
 }
 
 export const enemyRegistry: Map<number, EnemyEntry> = new Map();
@@ -165,7 +167,7 @@ export const FOREST_BARREL_DEFS: BarrelDef[] = [
 ];
 
 export function barrelDefsFor(map: MapId): BarrelDef[] {
-  return map === "forest" ? FOREST_BARREL_DEFS : ARENA_BARREL_DEFS;
+  return map !== "arena" ? FOREST_BARREL_DEFS : ARENA_BARREL_DEFS;
 }
 
 export interface BarrelEntry {

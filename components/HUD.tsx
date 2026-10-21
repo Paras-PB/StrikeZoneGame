@@ -112,7 +112,7 @@ export default function HUD() {
         <div className="text-center">
           <div className="text-[10px] tracking-[0.25em] text-orange-400 font-bold">WAVE</div>
           <div className="text-2xl font-black leading-none">{wave || "—"}</div>
-          <div className="text-[9px] tracking-[0.2em] text-white/45 font-bold mt-0.5">{mapId === "forest" ? "🌲 FOREST" : "🏭 ARENA"}</div>
+          <div className="text-[9px] tracking-[0.2em] text-white/45 font-bold mt-0.5">{mapId === "forest" ? "🌲 FOREST" : mapId === "autumn" ? "🍂 AUTUMN" : "🏭 ARENA"}</div>
         </div>
         <div className="w-px h-8 bg-white/15" />
         <div className="text-center">

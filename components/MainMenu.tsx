@@ -107,7 +107,7 @@ export default function MainMenu() {
         )}
 
         {phase === "menu" && (
-          <div className="grid grid-cols-2 gap-3 mb-3 text-left">
+          <div className="grid grid-cols-3 gap-3 mb-3 text-left">
             <button
               onClick={() => setStore({ mapId: "arena" })}
               className={`pointer-events-auto rounded p-4 border transition active:scale-95 ${mapId === "arena" ? "bg-orange-600/25 border-orange-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}
@@ -120,9 +120,17 @@ export default function MainMenu() {
               onClick={() => setStore({ mapId: "forest" })}
               className={`pointer-events-auto rounded p-4 border transition active:scale-95 ${mapId === "forest" ? "bg-orange-600/25 border-orange-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}
             >
-              <div className="font-black tracking-widest text-sm">🌲 FOREST OUTPOST <span className="text-green-400 text-[10px] align-middle">NEW · V4</span></div>
-              <div className="text-white/60 text-xs mt-1">Dawn pines, log cabins and a watchtower — like the photo above. Tree cover everywhere.</div>
+              <div className="font-black tracking-widest text-sm">🌲 FOREST OUTPOST</div>
+              <div className="text-white/60 text-xs mt-1">Big leafy trees, log cabins and a watchtower at dawn. Cover everywhere.</div>
               {mapId === "forest" && <div className="text-orange-400 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
+            </button>
+            <button
+              onClick={() => setStore({ mapId: "autumn" })}
+              className={`pointer-events-auto rounded p-4 border transition active:scale-95 ${mapId === "autumn" ? "bg-orange-600/25 border-orange-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+            >
+              <div className="font-black tracking-widest text-sm">🍂 AUTUMN RIDGE <span className="text-amber-400 text-[10px] align-middle">NEW · V6</span></div>
+              <div className="text-white/60 text-xs mt-1">Golden trees at sunset, leaves in the air — and things hiding between them.</div>
+              {mapId === "autumn" && <div className="text-orange-400 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
             </button>
           </div>
         )}
@@ -172,6 +180,7 @@ export default function MainMenu() {
                 <li>• 💥 <b className="text-white">Red barrels explode</b> — shoot them near groups. Watch for Exploders (glowing chest) and drones in the sky from wave 5.</li>
                 <li>• 🎯 <b className="text-white">Marksmen</b> (wave 6+) paint you with a <b className="text-red-400">red laser</b> — break line of sight before they fire. 🤖 Deploy your <b className="text-white">sentry (F)</b> to hold ground, and spend <b className="text-white">airstrikes (X)</b> on crowds.</li>
                 <li>• 🚁 <b className="text-white">The GUNSHIP</b> replaces the Juggernaut on alternating boss waves — it circles overhead, strafes, and drops <b className="text-white">rocket salvos</b> (run from the red circles!). Counter it with the <b className="text-white">Stinger (6)</b>: aim to lock, then fire. 🌧️ Some waves hit a <b className="text-white">storm front</b> — rain, fog, short sightlines.</li>
+                <li>• 🥷 <b className="text-white">In the woods</b> (wave 7+), watch for <b className="text-white">Stalkers</b> — ghillie ambushers, near-invisible while still, flickering on the minimap. Get close or wing one and he rushes you. 🍂 <b className="text-white">Autumn Ridge</b> is the woods at sunset.</li>
                 <li>• ☠️ <b className="text-white">Wave 10 — the Juggernaut.</b> Beat him to win, then choose <b className="text-white">∞ Endless</b> to see how far you get. Health slowly regenerates if you avoid fire.</li>
               </ul>
             </div>

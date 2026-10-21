@@ -32,12 +32,12 @@ export default function Minimap() {
       raf = requestAnimationFrame(draw);
       const s = useGameStore.getState();
       g.clearRect(0, 0, MM_SIZE, MM_SIZE);
-      g.fillStyle = mapId === "forest" ? "rgba(22,32,19,0.85)" : "rgba(29,27,21,0.85)";
+      g.fillStyle = mapId === "forest" ? "rgba(22,32,19,0.85)" : mapId === "autumn" ? "rgba(38,28,16,0.85)" : "rgba(29,27,21,0.85)";
       g.fillRect(0, 0, MM_SIZE, MM_SIZE);
 
       // static cover
-      if (mapId === "forest") {
-        g.fillStyle = "rgba(96,138,84,0.55)";
+      if (mapId !== "arena") {
+        g.fillStyle = mapId === "autumn" ? "rgba(201,140,44,0.55)" : "rgba(96,138,84,0.55)";
         for (const t of FOREST_TREES) {
           g.beginPath();
           g.arc(px(t.x), pz(t.z), 1.7, 0, Math.PI * 2);
@@ -100,6 +100,8 @@ export default function Minimap() {
       // hostiles — red dots, live positions
       for (const e of enemyRegistry.values()) {
         if (!e.alive) continue;
+        // cloaked stalkers only flicker onto the map
+        if (e.kind === "stalker" && !e.alerted && Math.floor(performance.now() / 400) % 2 === 0) continue;
         if (e.kind === "boss" || e.kind === "gunship") {
           dot(e.pos.x, e.pos.z, 4.6, "#ff2ad4");
           g.beginPath();

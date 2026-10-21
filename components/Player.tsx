@@ -179,6 +179,7 @@ export default function Player() {
     st.unlockAch("firstblood");
     if (opts?.kind === "boss") st.unlockAch("bossslayer");
     if (opts?.kind === "gunship") st.unlockAch("skyfall");
+    if (opts?.kind === "stalker") st.unlockAch("timber");
     if (combo >= 5) st.unlockAch("rampage");
     if (newHeadshots >= 10) st.unlockAch("sharpshooter");
     if (newBarrelKills >= 5) st.unlockAch("demolitionist");

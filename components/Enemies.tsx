@@ -32,6 +32,10 @@ interface Bot {
   strafeT: number;
   shotT: number;
   orbitA: number;
+  // stalker ambush state
+  alerted: boolean;
+  cloak: number;
+  matInit: boolean;
 }
 
 let botId = 1;
@@ -59,6 +63,7 @@ const KIND_STATS: Record<EnemyKind, { hp: number; speed: number; scale: number; 
   drone: { hp: 0.45, speed: 1.05, scale: 1, dmg: 0.8 },
   marksman: { hp: 0.8, speed: 0.5, scale: 1, dmg: 1 },
   gunship: { hp: 1, speed: 1, scale: 1, dmg: 1 },
+  stalker: { hp: 0.9, speed: 1.5, scale: 1, dmg: 1.1 },
 };
 
 const KIND_STYLE: Record<EnemyKind, { torso: string; vest: string; visor: string }> = {
@@ -70,6 +75,7 @@ const KIND_STYLE: Record<EnemyKind, { torso: string; vest: string; visor: string
   drone: { torso: "#2c3540", vest: "#171b21", visor: "#39d0ff" },
   marksman: { torso: "#31473a", vest: "#131a15", visor: "#ffb02a" },
   gunship: { torso: "#23282e", vest: "#14171b", visor: "#ff2a2a" },
+  stalker: { torso: "#44543a", vest: "#2e3b28", visor: "#9fe870" },
 };
 
 function SoldierMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }) {
@@ -134,6 +140,21 @@ function SoldierMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }
           <boxGeometry args={[0.06, 0.07, 0.22]} />
           <meshStandardMaterial color="#0c0d0f" metalness={0.6} roughness={0.4} />
         </mesh>
+      )}
+      {bot.kind === "stalker" && (
+        <>
+          {[
+            [0.3, 1.32, 0.12, 0.17],
+            [-0.28, 1.45, -0.08, 0.15],
+            [0.05, 1.18, -0.26, 0.16],
+            [-0.12, 1.6, 0.2, 0.13],
+          ].map(([x, y, z, r], i) => (
+            <mesh key={"gh" + i} castShadow position={[x, y, z]}>
+              <icosahedronGeometry args={[r, 0]} />
+              <meshStandardMaterial color={i % 2 ? "#4c6a34" : "#5d7d3c"} roughness={1} flatShading />
+            </mesh>
+          ))}
+        </>
       )}
       {/* head + helmet */}
       <mesh castShadow position={[0, 1.72, 0]}>
@@ -364,11 +385,13 @@ export default function Enemies() {
 
   function pickKind(w: number): EnemyKind {
     const r = Math.random();
-    if (w >= 6 && r < 0.1) return "marksman";
-    if (w >= 4 && r < 0.2) return "heavy";
-    if (w >= 5 && r < 0.33) return "drone";
-    if (w >= 3 && r < 0.5) return "exploder";
-    if (w >= 2 && r < 0.74) return "runner";
+    const mapId = useGameStore.getState().mapId;
+    if (w >= 7 && mapId !== "arena" && r < 0.09) return "stalker";
+    if (w >= 6 && r < 0.19) return "marksman";
+    if (w >= 4 && r < 0.29) return "heavy";
+    if (w >= 5 && r < 0.42) return "drone";
+    if (w >= 3 && r < 0.59) return "exploder";
+    if (w >= 2 && r < 0.83) return "runner";
     return "soldier";
   }
 
@@ -421,6 +444,9 @@ export default function Enemies() {
       strafeT: 0,
       shotT: 0,
       orbitA: Math.random() * Math.PI * 2,
+      alerted: false,
+      cloak: 1,
+      matInit: false,
     };
     bots.current.push(b);
     enemyRegistry.set(b.id, {
@@ -459,7 +485,7 @@ export default function Enemies() {
     s.set({ storm: isStormWave(w, bossWave) });
 
     if (defend) {
-      const spots = s.mapId === "forest" ? FOREST_ZONE_SPOTS : ZONE_SPOTS;
+      const spots = s.mapId !== "arena" ? FOREST_ZONE_SPOTS : ZONE_SPOTS;
       const [zx, zz] = spots[w % spots.length];
       s.set({ objective: "defend", objectiveTimeLeft: 60, zoneX: zx, zoneZ: zz, playerInZone: false });
       defendSpawnT.current = 2.4;
@@ -681,6 +707,44 @@ export default function Enemies() {
         continue;
       }
 
+      // ---- stalker: cloaked ambush until close or hurt, then rushes ----
+      if (b.kind === "stalker") {
+        if (!b.alerted && (dist <= 9 || b.health < b.maxHealth)) {
+          b.alerted = true;
+          s.addKillfeed("🥷 STALKER SPOTTED!");
+        }
+        const reg2 = enemyRegistry.get(b.id);
+        if (reg2) reg2.alerted = b.alerted;
+        if (g) {
+          if (!b.matInit) {
+            b.matInit = true;
+            g.traverse((o) => {
+              const mesh = o as THREE.Mesh;
+              if (mesh.isMesh) {
+                const m = mesh.material as THREE.MeshStandardMaterial;
+                m.transparent = true;
+              }
+            });
+          }
+          const target = b.alerted ? 1 : 0.16;
+          b.cloak += (target - b.cloak) * Math.min(1, dt * 5);
+          g.traverse((o) => {
+            const mesh = o as THREE.Mesh;
+            if (mesh.isMesh) (mesh.material as THREE.MeshStandardMaterial).opacity = b.cloak;
+          });
+        }
+        if (!b.alerted) {
+          // hold still, face the player, stay hidden
+          if (g) {
+            g.position.copy(b.pos);
+            g.rotation.y = Math.atan2(tmpV.x, tmpV.z) + Math.PI;
+          }
+          const reg3 = enemyRegistry.get(b.id);
+          if (reg3) reg3.pos.copy(b.pos);
+          continue;
+        }
+      }
+
       // exploders just run at the player and blow up
       if (b.kind === "exploder" && dist < 2.1) {
         explodeBot(b);
@@ -692,7 +756,7 @@ export default function Enemies() {
       const px = -tmpV.z * strafe;
       const pz = tmpV.x * strafe;
       const wantDist =
-        b.kind === "exploder" ? 0.5 : b.kind === "runner" ? 5 : b.kind === "heavy" ? 8.5 : b.kind === "boss" ? 9 : b.kind === "drone" ? 13 : b.kind === "marksman" ? 24 : 6.5;
+        b.kind === "exploder" ? 0.5 : b.kind === "runner" ? 5 : b.kind === "heavy" ? 8.5 : b.kind === "boss" ? 9 : b.kind === "drone" ? 13 : b.kind === "marksman" ? 24 : b.kind === "stalker" ? 6 : 6.5;
       let approach = dist > wantDist ? 1.35 : dist < 4 && b.kind !== "drone" ? -0.8 : 0.3;
       if (b.kind === "marksman") approach = dist > 27 ? 1.1 : dist < 18 ? -1 : 0;
       // long-range rush burst closes the gap fast
@@ -887,6 +951,7 @@ export default function Enemies() {
         if (s.wave % 3 === 0) st.unlockAch("nightowl");
         if (st.storm) st.unlockAch("stormrider");
         if (s.wave >= MAX_WAVE && !s.endless) {
+          if (st.mapId === "autumn") st.unlockAch("autumnop");
           st.finish("victory");
           document.exitPointerLock?.();
         } else {
