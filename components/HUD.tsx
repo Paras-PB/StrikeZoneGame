@@ -2,6 +2,7 @@
 import { useGameStore, WEAPONS } from "@/lib/store";
 import dynamic from "next/dynamic";
 const Minimap = dynamic(() => import("./Minimap"), { ssr: false });
+const LockIndicator = dynamic(() => import("./LockIndicator"), { ssr: false });
 
 export default function HUD() {
   const health = useGameStore((s) => s.health);
@@ -36,6 +37,8 @@ export default function HUD() {
   const overdriveUntil = useGameStore((s) => s.overdriveUntil);
   const achToast = useGameStore((s) => s.achToast);
   const bossEnraged = useGameStore((s) => s.bossEnraged);
+  const bossKind = useGameStore((s) => s.bossKind);
+  const storm = useGameStore((s) => s.storm);
   const night = wave > 0 && wave % 3 === 0;
   const overdrive = Date.now() < overdriveUntil;
   const scoped = ads && active === "sn";
@@ -130,7 +133,7 @@ export default function HUD() {
       {bossMax > 0 && bossHealth > 0 && (
         <div className="absolute top-[74px] left-1/2 -translate-x-1/2 w-[420px] max-w-[70vw]">
           <div className="flex justify-between text-[10px] font-black tracking-[0.3em] text-red-400 mb-1">
-            <span>☠ JUGGERNAUT{bossEnraged ? " — ENRAGED" : ""}</span>
+            <span>{bossKind === "gunship" ? `🚁 GUNSHIP${bossEnraged ? " — WEAPONS FREE" : ""}` : `☠ JUGGERNAUT${bossEnraged ? " — ENRAGED" : ""}`}</span>
             <span>{bossHealth}</span>
           </div>
           <div className="h-3 bg-white/10 rounded overflow-hidden border border-red-500/40">
@@ -147,6 +150,7 @@ export default function HUD() {
           </div>
         )}
         {night && <div className="bg-indigo-950/80 border border-indigo-400/30 px-3 py-1 rounded text-xs font-bold tracking-widest">🌙 NIGHT OPS</div>}
+        {storm && <div className="bg-slate-800/85 border border-sky-300/30 px-3 py-1 rounded text-xs font-bold tracking-widest">🌧️ STORM FRONT</div>}
       </div>
 
       {/* floating damage number */}
@@ -219,7 +223,8 @@ export default function HUD() {
           <span className={active === "smg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>2 SMG</span>{" "}
           <span className={active === "sg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>3 SG</span>{" "}
           <span className={active === "sn" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>4 SNIPER</span>{" "}
-          <span className={active === "saw" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>5 SAW</span>
+          <span className={active === "saw" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>5 SAW</span>{" "}
+          <span className={active === "stinger" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>6 STINGER</span>
         </div>
         <div className="mt-1 text-[11px] text-white/60">
           <span className={grenades > 0 ? "text-orange-300 font-bold" : ""}>G FRAG ×{grenades}</span>
@@ -232,6 +237,7 @@ export default function HUD() {
       </div>
 
       <Minimap />
+      {active === "stinger" && <LockIndicator ads={ads} />}
 
       {/* click to re-lock */}
       <LockHint />

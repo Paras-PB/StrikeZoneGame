@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { useGameStore, PERK_POOL } from "@/lib/store";
 import type { PerkId } from "@/lib/store";
-import { enemyRegistry, playerState, collideCircle, pushTracer, colliders, explodeAt, resetBarrels, timeState } from "@/lib/game";
+import { enemyRegistry, playerState, collideCircle, pushTracer, colliders, explodeAt, resetBarrels, timeState, GUNSHIP_ALT, rocketMarks, pushExplosion } from "@/lib/game";
 import type { EnemyKind } from "@/lib/game";
 import { sfxEnemyShoot, sfxHurt } from "@/lib/audio";
 
@@ -26,6 +26,12 @@ interface Bot {
   enraged: boolean;
   aiming: boolean;
   aimT: number;
+  // gunship attack state
+  atkT: number;
+  atkAlt: number;
+  strafeT: number;
+  shotT: number;
+  orbitA: number;
 }
 
 let botId = 1;
@@ -52,6 +58,7 @@ const KIND_STATS: Record<EnemyKind, { hp: number; speed: number; scale: number; 
   boss: { hp: 1, speed: 0.55, scale: 1.9, dmg: 2 },
   drone: { hp: 0.45, speed: 1.05, scale: 1, dmg: 0.8 },
   marksman: { hp: 0.8, speed: 0.5, scale: 1, dmg: 1 },
+  gunship: { hp: 1, speed: 1, scale: 1, dmg: 1 },
 };
 
 const KIND_STYLE: Record<EnemyKind, { torso: string; vest: string; visor: string }> = {
@@ -62,6 +69,7 @@ const KIND_STYLE: Record<EnemyKind, { torso: string; vest: string; visor: string
   boss: { torso: "#571622", vest: "#1a0508", visor: "#ff2ad4" },
   drone: { torso: "#2c3540", vest: "#171b21", visor: "#39d0ff" },
   marksman: { torso: "#31473a", vest: "#131a15", visor: "#ffb02a" },
+  gunship: { torso: "#23282e", vest: "#14171b", visor: "#ff2a2a" },
 };
 
 function SoldierMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }) {
@@ -208,6 +216,116 @@ function DroneMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }) 
   );
 }
 
+function GunshipMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }) {
+  const rotor = useRef<THREE.Group>(null);
+  const tail = useRef<THREE.Group>(null);
+  useFrame((_, dt) => {
+    if (rotor.current) rotor.current.rotation.y += dt * 34;
+    if (tail.current) tail.current.rotation.x += dt * 44;
+  });
+  return (
+    <group
+      ref={(g) => {
+        if (g) refs.set(bot.id, g);
+        else refs.delete(bot.id);
+      }}
+    >
+      {/* fuselage */}
+      <mesh castShadow>
+        <boxGeometry args={[2.1, 1.15, 4.4]} />
+        <meshStandardMaterial color="#23282e" roughness={0.45} metalness={0.6} />
+      </mesh>
+      {/* nose + cockpit glass */}
+      <mesh castShadow position={[0, 0.08, -2.5]}>
+        <boxGeometry args={[1.7, 0.85, 0.9]} />
+        <meshStandardMaterial color="#1a1e23" roughness={0.4} metalness={0.6} />
+      </mesh>
+      <mesh position={[0, 0.32, -2.85]}>
+        <boxGeometry args={[1.45, 0.5, 0.35]} />
+        <meshStandardMaterial color="#7fd4ff" emissive="#2a6a8a" emissiveIntensity={0.7} roughness={0.15} metalness={0.7} />
+      </mesh>
+      {/* engine intakes */}
+      {[-0.8, 0.8].map((x) => (
+        <mesh key={x} castShadow position={[x, 0.72, -0.4]}>
+          <boxGeometry args={[0.55, 0.4, 1.3]} />
+          <meshStandardMaterial color="#14171b" roughness={0.5} metalness={0.6} />
+        </mesh>
+      ))}
+      {/* tail boom + fin */}
+      <mesh castShadow position={[0, 0.22, 3.6]}>
+        <boxGeometry args={[0.42, 0.5, 3.2]} />
+        <meshStandardMaterial color="#1d2126" roughness={0.5} metalness={0.55} />
+      </mesh>
+      <mesh castShadow position={[0, 0.85, 5.1]}>
+        <boxGeometry args={[0.12, 1.1, 0.7]} />
+        <meshStandardMaterial color="#8a1f1f" roughness={0.55} metalness={0.4} />
+      </mesh>
+      {/* tail rotor */}
+      <group ref={tail} position={[0.32, 0.85, 5.1]}>
+        <mesh>
+          <boxGeometry args={[0.04, 1.15, 0.14]} />
+          <meshBasicMaterial color="#9fb4c8" transparent opacity={0.6} />
+        </mesh>
+      </group>
+      {/* main rotor */}
+      <mesh position={[0, 0.78, -0.2]}>
+        <cylinderGeometry args={[0.14, 0.18, 0.5, 8]} />
+        <meshStandardMaterial color="#101216" metalness={0.7} roughness={0.35} />
+      </mesh>
+      <group ref={rotor} position={[0, 1.05, -0.2]}>
+        <mesh>
+          <boxGeometry args={[11.5, 0.04, 0.5]} />
+          <meshBasicMaterial color="#aebbc8" transparent opacity={0.5} />
+        </mesh>
+        <mesh rotation={[0, Math.PI / 2, 0]}>
+          <boxGeometry args={[11.5, 0.04, 0.5]} />
+          <meshBasicMaterial color="#aebbc8" transparent opacity={0.35} />
+        </mesh>
+      </group>
+      {/* stub wings + rocket pods */}
+      {[-1.45, 1.45].map((x) => (
+        <group key={x} position={[x, -0.15, 0.5]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.85, 0.14, 1.1]} />
+            <meshStandardMaterial color="#1d2126" roughness={0.5} metalness={0.5} />
+          </mesh>
+          <mesh castShadow position={[0, -0.22, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.19, 0.19, 1.25, 10]} />
+            <meshStandardMaterial color="#3a3f45" roughness={0.45} metalness={0.6} />
+          </mesh>
+        </group>
+      ))}
+      {/* nose minigun */}
+      <mesh position={[0.45, -0.5, -2.6]} rotation={[Math.PI / 2.4, 0, 0]}>
+        <cylinderGeometry args={[0.07, 0.07, 0.8, 8]} />
+        <meshStandardMaterial color="#0c0d0f" metalness={0.7} roughness={0.35} />
+      </mesh>
+      {/* skids */}
+      {[-0.85, 0.85].map((x) => (
+        <mesh key={"sk" + x} position={[x, -1.05, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.06, 0.06, 3.6, 6]} />
+          <meshStandardMaterial color="#14171b" metalness={0.6} roughness={0.4} />
+        </mesh>
+      ))}
+      {/* searchlight cone */}
+      <mesh position={[0, -6.5, -1]} rotation={[0.12, 0, 0]}>
+        <coneGeometry args={[4.2, 12, 20, 1, true]} />
+        <meshBasicMaterial color="#ffe9a8" transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      <pointLight position={[0, -1.4, -1]} intensity={60} distance={26} color="#ffe9a8" />
+      {/* red nav strobes */}
+      <mesh position={[-2.3, 0, 0.5]}>
+        <sphereGeometry args={[0.09, 6, 6]} />
+        <meshStandardMaterial color="#ff2020" emissive="#ff2020" emissiveIntensity={3} />
+      </mesh>
+      <mesh position={[2.3, 0, 0.5]}>
+        <sphereGeometry args={[0.09, 6, 6]} />
+        <meshStandardMaterial color="#20ff60" emissive="#20ff60" emissiveIntensity={3} />
+      </mesh>
+    </group>
+  );
+}
+
 export default function Enemies() {
   const bots = useRef<Bot[]>([]);
   const groups = useRef(new Map<number, THREE.Group>());
@@ -272,7 +390,12 @@ export default function Enemies() {
         z = -z;
       }
     }
-    const hp = kind === "boss" ? 1650 + Math.max(0, w - MAX_WAVE) * 220 : Math.round(baseHp * st.hp);
+    const hp =
+      kind === "boss"
+        ? 1650 + Math.max(0, w - MAX_WAVE) * 220
+        : kind === "gunship"
+          ? 2300 + Math.max(0, w - MAX_WAVE) * 200
+          : Math.round(baseHp * st.hp);
     const speed =
       kind === "boss" ? 4.4 : Math.min(9.5, (5.2 + Math.random() * 1.8 + w * 0.28) * st.speed);
     const b: Bot = {
@@ -293,6 +416,11 @@ export default function Enemies() {
       enraged: false,
       aiming: false,
       aimT: 0,
+      atkT: 2.2,
+      atkAlt: 0,
+      strafeT: 0,
+      shotT: 0,
+      orbitA: Math.random() * Math.PI * 2,
     };
     bots.current.push(b);
     enemyRegistry.set(b.id, {
@@ -311,6 +439,12 @@ export default function Enemies() {
   function isBossWave(w: number, endless: boolean) {
     return w === MAX_WAVE || (endless && w > MAX_WAVE && w % 5 === 0);
   }
+  function isGunshipWave(w: number) {
+    return Math.floor(w / 5) % 2 === 1;
+  }
+  function isStormWave(w: number, bossWave: boolean) {
+    return !bossWave && w > 1 && w % 4 === 2 && w % 3 !== 0;
+  }
   function isDefendWave(w: number, bossWave: boolean) {
     return !bossWave && (w === 8 || w % 7 === 4);
   }
@@ -322,6 +456,7 @@ export default function Enemies() {
     if (w >= 7) s.unlockAch("survivor");
     const bossWave = isBossWave(w, s.endless);
     const defend = isDefendWave(w, bossWave);
+    s.set({ storm: isStormWave(w, bossWave) });
 
     if (defend) {
       const spots = s.mapId === "forest" ? FOREST_ZONE_SPOTS : ZONE_SPOTS;
@@ -343,14 +478,16 @@ export default function Enemies() {
     }
     let total = count;
     if (bossWave) {
-      const boss = spawnBot("boss", w, new THREE.Vector3(0, 0, -30));
+      const gunship = isGunshipWave(w);
+      const boss = gunship ? spawnBot("gunship", w, new THREE.Vector3(28, 0, 0)) : spawnBot("boss", w, new THREE.Vector3(0, 0, -30));
       total += 1;
-      s.set({ bossHealth: boss.health, bossMax: boss.maxHealth, bossEnraged: false });
+      s.set({ bossHealth: boss.health, bossMax: boss.maxHealth, bossEnraged: false, bossKind: gunship ? "gunship" : "juggernaut" });
     } else {
-      s.set({ bossHealth: 0, bossMax: 0, bossEnraged: false });
+      s.set({ bossHealth: 0, bossMax: 0, bossEnraged: false, bossKind: null });
     }
     s.set({ wave: w, enemiesLeft: total });
-    if (bossWave) s.addKillfeed("⚠ JUGGERNAUT INBOUND ⚠");
+    if (bossWave) s.addKillfeed(isGunshipWave(w) ? "🚁 GUNSHIP INBOUND 🚁" : "⚠ JUGGERNAUT INBOUND ⚠");
+    else if (s.storm) s.addKillfeed(`🌧️ WAVE ${w} — STORM FRONT, ${total} HOSTILES`);
     else if (w % 3 === 0) s.addKillfeed(`🌙 WAVE ${w} — NIGHT OPS, ${total} HOSTILES`);
     else s.addKillfeed(`WAVE ${w} INBOUND — ${total} HOSTILES`);
     setRenderIds(bots.current.map((b) => b.id));
@@ -412,8 +549,15 @@ export default function Enemies() {
           b.aiming = false;
           b.deathT = 0;
           reg.alive = false;
-          if (b.kind === "boss") s.set({ bossHealth: 0 });
+          if (b.kind === "boss" || b.kind === "gunship") s.set({ bossHealth: 0 });
           if (b.kind === "exploder") explodeBot(b);
+        } else if (b.kind === "gunship") {
+          if (!b.enraged && b.health <= b.maxHealth * 0.5) {
+            b.enraged = true;
+            s.set({ bossEnraged: true });
+            s.addKillfeed("🚁 GUNSHIP DAMAGED — WEAPONS FREE, IT'S ANGRY");
+          }
+          if (Math.ceil(b.health) !== s.bossHealth) s.set({ bossHealth: Math.ceil(b.health) });
         } else if (b.kind === "boss") {
           // phase 2: enrage at 40% HP — faster, harder, calls escorts
           if (!b.enraged && b.health <= b.maxHealth * 0.4) {
@@ -441,7 +585,15 @@ export default function Enemies() {
       if (!b.alive) {
         b.deathT += dt;
         if (g) {
-          if (b.kind === "drone") {
+          if (b.kind === "gunship") {
+            g.position.y = Math.max(0.8, GUNSHIP_ALT - b.deathT * b.deathT * 3.2);
+            g.rotation.z = Math.min(0.9, b.deathT * 1.6);
+            g.rotation.x = Math.min(0.5, b.deathT * 0.9);
+            if (!b.exploded && g.position.y <= 0.9) {
+              b.exploded = true;
+              pushExplosion(new THREE.Vector3(b.pos.x, 1, b.pos.z), 8);
+            }
+          } else if (b.kind === "drone") {
             // drones crash out of the sky
             g.position.y = Math.max(0.25, DRONE_HOVER - b.deathT * 5.5);
             g.rotation.z = Math.min(1.1, b.deathT * 2.4);
@@ -464,6 +616,70 @@ export default function Enemies() {
       tmpV.set(playerState.pos.x - b.pos.x, 0, playerState.pos.z - b.pos.z);
       const dist = tmpV.length();
       tmpV.normalize();
+
+      // ---- gunship: orbits the arena, strafes and fires rocket salvos ----
+      if (b.kind === "gunship") {
+        const R = 30 + Math.sin(t * 0.11 + b.strafePhase) * 5;
+        b.orbitA += ((b.enraged ? 7.4 : 5.6) / R) * dt;
+        b.pos.x = Math.cos(b.orbitA) * R;
+        b.pos.z = Math.sin(b.orbitA) * R;
+        if (g) {
+          g.position.set(b.pos.x, GUNSHIP_ALT + Math.sin(t * 0.9 + b.strafePhase) * 0.7, b.pos.z);
+          g.rotation.y = Math.atan2(-Math.sin(b.orbitA), Math.cos(b.orbitA)) + Math.PI;
+          g.rotation.z = 0.16;
+        }
+        const greg = enemyRegistry.get(b.id);
+        if (greg) {
+          greg.pos.copy(b.pos);
+          greg.health = b.health;
+        }
+        // attack cycle
+        if (b.strafeT > 0) {
+          b.strafeT -= dt;
+          b.shotT -= dt;
+          if (b.shotT <= 0) {
+            b.shotT = 0.11;
+            const from = new THREE.Vector3(b.pos.x, GUNSHIP_ALT - 0.6, b.pos.z);
+            const target = new THREE.Vector3(
+              playerState.pos.x + (Math.random() - 0.5) * 2.4,
+              playerState.pos.y + 1.2,
+              playerState.pos.z + (Math.random() - 0.5) * 2.4
+            );
+            pushTracer(from, target, true);
+            sfxEnemyShoot();
+            const dodge = playerState.sliding ? 0.45 : playerState.sprinting ? 0.75 : 1;
+            if (Math.random() < 0.3 * dodge) damagePlayer(5 + s.wave * 0.15);
+          }
+        } else {
+          b.atkT -= dt;
+          if (b.atkT <= 0) {
+            b.atkAlt += 1;
+            if (b.atkAlt % 2 === 1) {
+              // rocket salvo: telegraphed marks around the player
+              const nowMs = performance.now();
+              const offs: [number, number][] = [
+                [0, 0],
+                [5, 3],
+                [-4, 4],
+                [2, -5],
+              ];
+              offs.forEach(([ox, oz], i) => {
+                rocketMarks.push({
+                  x: Math.max(-50, Math.min(50, playerState.pos.x + ox + (Math.random() - 0.5) * 2)),
+                  z: Math.max(-50, Math.min(50, playerState.pos.z + oz + (Math.random() - 0.5) * 2)),
+                  at: nowMs + 1050 + i * 150,
+                });
+              });
+              s.addKillfeed("🚁 ROCKET SALVO — MOVE!");
+              b.atkT = b.enraged ? 3.4 : 4.6;
+            } else {
+              b.strafeT = b.enraged ? 2.8 : 2.2;
+              b.atkT = b.enraged ? 3.2 : 4.2;
+            }
+          }
+        }
+        continue;
+      }
 
       // exploders just run at the player and blow up
       if (b.kind === "exploder" && dist < 2.1) {
@@ -650,6 +866,15 @@ export default function Enemies() {
       }
     }
 
+    // gunship rocket salvos land
+    for (let i = rocketMarks.length - 1; i >= 0; i--) {
+      if (performance.now() >= rocketMarks[i].at) {
+        const m = rocketMarks[i];
+        rocketMarks.splice(i, 1);
+        explodeAt(new THREE.Vector3(m.x, 0.7, m.z), 5, 55, 30);
+      }
+    }
+
     // wave cleared
     const defendDone = s.objective !== "defend" || s.objectiveTimeLeft <= 0;
     if (aliveCount === 0 && bots.current.length === 0 && defendDone) {
@@ -660,6 +885,7 @@ export default function Enemies() {
         // wave-clear achievements
         if (!st.tookDamageThisWave) st.unlockAch("untouchable");
         if (s.wave % 3 === 0) st.unlockAch("nightowl");
+        if (st.storm) st.unlockAch("stormrider");
         if (s.wave >= MAX_WAVE && !s.endless) {
           st.finish("victory");
           document.exitPointerLock?.();
@@ -674,6 +900,7 @@ export default function Enemies() {
               sg: { mag: 6, reserve: Math.min(48, st.ammo.sg.reserve + 12) },
               sn: { mag: 5, reserve: Math.min(40, st.ammo.sn.reserve + 8) },
               saw: { mag: 100, reserve: Math.min(400, st.ammo.saw.reserve + 120) },
+              stinger: { mag: 1, reserve: Math.min(10, st.ammo.stinger.reserve + 2) },
             },
             turrets: Math.min(2, st.turrets + (s.wave % 2 === 0 ? 1 : 0)),
           });
@@ -712,6 +939,8 @@ export default function Enemies() {
         if (!b) return null;
         return b.kind === "drone" ? (
           <DroneMesh key={id} bot={b} refs={groups.current} />
+        ) : b.kind === "gunship" ? (
+          <GunshipMesh key={id} bot={b} refs={groups.current} />
         ) : (
           <SoldierMesh key={id} bot={b} refs={groups.current} />
         );

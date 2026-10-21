@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Sky, ContactShadows, Stars } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
 import { addCollider, clearColliders, setupBarrels, clearTurret, clearAirstrike, FOREST_CABINS, FOREST_TOWER, FOREST_ROCKS, FOREST_TREES } from "@/lib/game";
 import { useGameStore } from "@/lib/store";
 
@@ -338,6 +339,7 @@ export default function World() {
   const forestTex = useMemo(() => (typeof document !== "undefined" ? makeForestTexture() : null), []);
   const wave = useGameStore((s) => s.wave);
   const mapId = useGameStore((s) => s.mapId);
+  const storm = useGameStore((s) => s.storm);
   const forest = mapId === "forest";
   const night = wave > 0 && wave % 3 === 0;
 
@@ -393,14 +395,14 @@ export default function World() {
 
   return (
     <group>
-      <Sky distance={4000} sunPosition={night ? [-60, 4, -100] : forest ? [55, 13, -90] : [80, 28, -120]} turbidity={night ? 2 : forest ? 7 : 6} rayleigh={night ? 0.6 : forest ? 3 : 2.2} />
+      <Sky distance={4000} sunPosition={night ? [-60, 4, -100] : storm ? [30, 18, -60] : forest ? [55, 13, -90] : [80, 28, -120]} turbidity={night ? 2 : storm ? 10 : forest ? 7 : 6} rayleigh={night ? 0.6 : storm ? 0.4 : forest ? 3 : 2.2} />
       {night && <Stars radius={220} depth={60} count={3000} factor={5} saturation={0} fade speed={0.6} />}
-      <fog attach="fog" args={night ? ["#131b2a", 22, 125] : forest ? ["#c9b98f", 34, 175] : ["#c8b08a", 55, 220]} />
-      <hemisphereLight args={night ? ["#5a6f9e", "#14120e", 0.22] : forest ? ["#ffe9c4", "#43502f", 0.7] : ["#bfd6ff", "#7a6a4f", 0.75]} />
+      <fog attach="fog" args={night ? ["#131b2a", 22, 125] : storm ? ["#59636e", 9, 92] : forest ? ["#c9b98f", 34, 175] : ["#c8b08a", 55, 220]} />
+      <hemisphereLight args={night ? ["#5a6f9e", "#14120e", 0.22] : storm ? ["#6d7683", "#2c2f28", 0.38] : forest ? ["#ffe9c4", "#43502f", 0.7] : ["#bfd6ff", "#7a6a4f", 0.75]} />
       <directionalLight
         position={night ? [-40, 55, -25] : [50, 60, -30]}
-        intensity={night ? 0.4 : 2.2}
-        color={night ? "#aebfff" : forest ? "#ffe3ae" : "#fff1d6"}
+        intensity={night ? 0.4 : storm ? 0.75 : 2.2}
+        color={night ? "#aebfff" : storm ? "#cfd6dd" : forest ? "#ffe3ae" : "#fff1d6"}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-70}
@@ -409,6 +411,8 @@ export default function World() {
         shadow-camera-bottom={-70}
         shadow-camera-far={200}
       />
+
+      {storm && !night && <Rain />}
 
       {!forest && (
         <>
@@ -584,5 +588,43 @@ export default function World() {
       )}
 
     </group>
+  );
+}
+
+/** Storm rain: 900 points cycling downward in a box around the arena centre. */
+function Rain() {
+  const ref = useRef<THREE.Points>(null);
+  const geo = useMemo(() => {
+    const n = 900;
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 110;
+      arr[i * 3 + 1] = Math.random() * 34;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 110;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+    return g;
+  }, []);
+  useFrame((_, dt) => {
+    const pts = ref.current;
+    if (!pts) return;
+    const a = (geo.getAttribute("position") as THREE.BufferAttribute).array as Float32Array;
+    const fall = Math.min(dt, 0.05) * 46;
+    for (let i = 0; i < a.length; i += 3) {
+      a[i + 1] -= fall;
+      a[i] -= fall * 0.18; // wind slant
+      if (a[i + 1] < 0) {
+        a[i + 1] = 34;
+        a[i] = (Math.random() - 0.5) * 110;
+        a[i + 2] = (Math.random() - 0.5) * 110;
+      }
+    }
+    (geo.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+  });
+  return (
+    <points ref={ref} geometry={geo} frustumCulled={false}>
+      <pointsMaterial color="#aebfd4" size={0.14} transparent opacity={0.55} sizeAttenuation depthWrite={false} />
+    </points>
   );
 }

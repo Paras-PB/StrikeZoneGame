@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type WeaponId = "ar" | "smg" | "sg" | "sn" | "saw";
+export type WeaponId = "ar" | "smg" | "sg" | "sn" | "saw" | "stinger";
 export type MapId = "arena" | "forest";
 export type Phase = "menu" | "playing" | "perk" | "dead" | "victory";
 
@@ -92,6 +92,20 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     auto: true,
     range: 100,
   },
+  stinger: {
+    id: "stinger",
+    name: "FIM-92 STINGER",
+    damage: 340,
+    headMult: 1,
+    rpm: 40,
+    mag: 1,
+    reserve: 8,
+    reloadTime: 2.6,
+    spreadHip: 0.01,
+    spreadAds: 0.002,
+    auto: true,
+    range: 260,
+  },
 };
 
 const fullAmmo = (): Record<WeaponId, { mag: number; reserve: number }> => ({
@@ -100,6 +114,7 @@ const fullAmmo = (): Record<WeaponId, { mag: number; reserve: number }> => ({
   sg: { mag: WEAPONS.sg.mag, reserve: WEAPONS.sg.reserve },
   sn: { mag: WEAPONS.sn.mag, reserve: WEAPONS.sn.reserve },
   saw: { mag: WEAPONS.saw.mag, reserve: WEAPONS.saw.reserve },
+  stinger: { mag: WEAPONS.stinger.mag, reserve: WEAPONS.stinger.reserve },
 });
 
 // ---- perks (chosen between waves) ----
@@ -137,7 +152,7 @@ export function rankFor(xp: number): { current: string; next: string | null; nex
 }
 
 // ---- achievements (persistent) ----
-export type AchId = "firstblood" | "demolitionist" | "sharpshooter" | "untouchable" | "nightowl" | "bossslayer" | "rampage" | "survivor";
+export type AchId = "firstblood" | "demolitionist" | "sharpshooter" | "untouchable" | "nightowl" | "bossslayer" | "rampage" | "survivor" | "skyfall" | "stormrider";
 
 export const ACH_DEFS: Record<AchId, { name: string; icon: string; desc: string }> = {
   firstblood: { name: "FIRST BLOOD", icon: "🩸", desc: "Get your first elimination." },
@@ -148,6 +163,8 @@ export const ACH_DEFS: Record<AchId, { name: string; icon: string; desc: string 
   bossslayer: { name: "BOSS SLAYER", icon: "☠️", desc: "Kill the Juggernaut." },
   rampage: { name: "RAMPAGE", icon: "🔥", desc: "Reach a ×5 combo chain." },
   survivor: { name: "SURVIVOR", icon: "🪖", desc: "Reach wave 7." },
+  skyfall: { name: "SKYFALL", icon: "🚁", desc: "Down the GUNSHIP." },
+  stormrider: { name: "STORM RIDER", icon: "🌧️", desc: "Clear a storm wave." },
 };
 
 function loadNum(key: string): number {
@@ -222,6 +239,9 @@ interface GameState {
   mapId: MapId;
   turrets: number;
   airstrikes: number;
+  // V5: boss kind + storm waves
+  bossKind: "juggernaut" | "gunship" | null;
+  storm: boolean;
   // V3: objective waves
   objective: "elim" | "defend";
   objectiveTimeLeft: number;
@@ -291,6 +311,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   mapId: "arena",
   turrets: 1,
   airstrikes: 0,
+  bossKind: null,
+  storm: false,
   objective: "elim",
   objectiveTimeLeft: 0,
   zoneX: 0,
@@ -338,6 +360,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       overdriveUntil: 0,
       turrets: 1,
       airstrikes: 0,
+      bossKind: null,
+      storm: false,
       objective: "elim",
       objectiveTimeLeft: 0,
       playerInZone: false,

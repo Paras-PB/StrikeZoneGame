@@ -150,6 +150,7 @@ export default function MainMenu() {
                   ["5", "Weapon 5 — M249 SAW LMG (100-round belt)"],
                   ["F", "Deploy sentry turret — auto-fires for 45s"],
                   ["X", "Call airstrike on your aim point (earn 1 per 25 kills)"],
+                  ["6", "Weapon 6 — Stinger: RMB aim at drones/gunship to lock, then fire"],
                   ["ESC", "Release the mouse"],
                   ["CLICK", "Choose a perk card between waves"],
                 ].map(([k, action]) => (
@@ -169,6 +170,7 @@ export default function MainMenu() {
                 <li>• 📦 A <b className="text-white">supply drop</b> lands every wave — run to the crate for a medkit, ammo, grenades or Overdrive (double damage).</li>
                 <li>• 💥 <b className="text-white">Red barrels explode</b> — shoot them near groups. Watch for Exploders (glowing chest) and drones in the sky from wave 5.</li>
                 <li>• 🎯 <b className="text-white">Marksmen</b> (wave 6+) paint you with a <b className="text-red-400">red laser</b> — break line of sight before they fire. 🤖 Deploy your <b className="text-white">sentry (F)</b> to hold ground, and spend <b className="text-white">airstrikes (X)</b> on crowds.</li>
+                <li>• 🚁 <b className="text-white">The GUNSHIP</b> replaces the Juggernaut on alternating boss waves — it circles overhead, strafes, and drops <b className="text-white">rocket salvos</b> (run from the red circles!). Counter it with the <b className="text-white">Stinger (6)</b>: aim to lock, then fire. 🌧️ Some waves hit a <b className="text-white">storm front</b> — rain, fog, short sightlines.</li>
                 <li>• ☠️ <b className="text-white">Wave 10 — the Juggernaut.</b> Beat him to win, then choose <b className="text-white">∞ Endless</b> to see how far you get. Health slowly regenerates if you avoid fire.</li>
               </ul>
             </div>

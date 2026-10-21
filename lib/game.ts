@@ -80,7 +80,7 @@ export function triggerSlowMo(ms = 850) {
 }
 
 // ---- enemy registry for hitscan ----
-export type EnemyKind = "soldier" | "runner" | "heavy" | "exploder" | "boss" | "drone" | "marksman";
+export type EnemyKind = "soldier" | "runner" | "heavy" | "exploder" | "boss" | "drone" | "marksman" | "gunship";
 
 /** Mesh scale per kind (hit spheres scale with it). */
 export const KIND_SCALE: Record<EnemyKind, number> = {
@@ -91,10 +91,13 @@ export const KIND_SCALE: Record<EnemyKind, number> = {
   boss: 1.9,
   drone: 1,
   marksman: 1,
+  gunship: 1,
 };
 
 /** Hitscan profile per kind: heights above feet + sphere radii. */
+export const GUNSHIP_ALT = 13;
 export function hitProfile(kind: EnemyKind): { chestY: number; headY: number; chestR: number; headR: number } {
+  if (kind === "gunship") return { chestY: GUNSHIP_ALT, headY: GUNSHIP_ALT + 0.6, chestR: 2.7, headR: 1.1 };
   if (kind === "drone") return { chestY: 3.35, headY: 3.35, chestR: 0.55, headR: 0.34 };
   const f = KIND_SCALE[kind];
   return { chestY: 1.15 * f, headY: 1.72 * f, chestR: 0.55 * f, headR: 0.32 * f };
@@ -263,7 +266,8 @@ export function explodeAt(
   const killed: EnemyEntry[] = [];
   for (const e of enemyRegistry.values()) {
     if (!e.alive) continue;
-    const c = new THREE.Vector3(e.pos.x, e.pos.y + 1, e.pos.z);
+    if (e.kind === "gunship" && center.y < 8) continue; // only altitude blasts reach it
+    const c = new THREE.Vector3(e.pos.x, e.pos.y + (e.kind === "gunship" ? GUNSHIP_ALT : 1), e.pos.z);
     const d = c.distanceTo(center);
     if (d > radius + e.radius) continue;
     const fall = Math.max(0.25, 1 - d / (radius + e.radius));
@@ -371,3 +375,35 @@ const FOREST_TREES: { x: number; z: number; s: number }[] = (() => {
   return out;
 })();
 export { FOREST_CABINS, FOREST_TOWER, FOREST_ROCKS, FOREST_ZONE_CLEARINGS, FOREST_TREES };
+
+// ---- V5: Stinger lock-on + homing rockets (stepped by components/Rockets.tsx) ----
+export const lockState: { id: number | null; progress: number; locked: boolean } = {
+  id: null,
+  progress: 0,
+  locked: false,
+};
+export function resetLock() {
+  lockState.id = null;
+  lockState.progress = 0;
+  lockState.locked = false;
+}
+
+export interface LiveRocket {
+  pos: THREE.Vector3;
+  vel: THREE.Vector3;
+  targetId: number | null;
+  life: number;
+}
+export const liveRockets: LiveRocket[] = [];
+export function spawnRocket(origin: THREE.Vector3, dir: THREE.Vector3, targetId: number | null) {
+  liveRockets.push({ pos: origin.clone(), vel: dir.clone().multiplyScalar(58), targetId, life: 4.5 });
+  if (liveRockets.length > 8) liveRockets.shift();
+}
+
+// ---- V5: gunship rocket-salvo telegraphs (rendered by Rockets.tsx, detonated by Enemies.tsx) ----
+export interface RocketMark {
+  x: number;
+  z: number;
+  at: number; // performance.now() timestamp of impact
+}
+export const rocketMarks: RocketMark[] = [];

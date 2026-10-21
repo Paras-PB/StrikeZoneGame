@@ -23,6 +23,15 @@ Production: `npm run build && npm start`. Desktop Chrome/Edge recommended (point
 - **Tactical minimap** — live top-down map (top-left): red dots are hostiles moving in real time (magenta = Juggernaut, orange = Marksman), white arrow is you, plus zone ring, barrels, sentry and airstrike markers.
 - **Airstrike (X)** — every 25 kills earns one. Call it on your aim point: a red target ring marks the zone, then 6 shells land over ~1.6 s.
 
+
+## V5 — GUNSHIP
+
+- **Gunship boss** — an attack helicopter replaces the Juggernaut on alternating boss waves (10 = Juggernaut, 15 = Gunship, 20 = Juggernaut, …). It orbits the arena, strafes with a minigun, and fires telegraphed rocket salvos — red rings shrink before impact. At 50% HP it gets angry: faster orbit, faster salvos. Ground explosions can't reach it; shoot it or lock it.
+- **FIM-92 Stinger** (key 6) — lock-on launcher: hold RMB on a drone or the gunship for 0.8 s until LOCKED, then fire a homing rocket (340 splash damage). Dumb-fires straight without a lock.
+- **Storm waves** — waves 2, 6, 14, 22… (every 4th, skipping night/boss waves) roll in with rain, dense fog and dim light.
+- **2 new achievements** — SKYFALL (down the gunship) and STORM RIDER (clear a storm wave), 10 total.
+- Boss bar and minimap handle both bosses; the gunship plots as the ringed magenta dot.
+
 ## Controls
 
 | Input | Action |

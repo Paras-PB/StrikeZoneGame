@@ -103,6 +103,7 @@ export default function SupplyDrop() {
                 sg: { mag: 6, reserve: 48 },
                 sn: { mag: 5, reserve: 40 },
                 saw: { mag: 100, reserve: 400 },
+                stinger: { mag: 1, reserve: 10 },
               },
             }),
         },
