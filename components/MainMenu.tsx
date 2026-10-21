@@ -192,7 +192,7 @@ export default function MainMenu() {
             onClick={start}
             className="pointer-events-auto bg-orange-600 hover:bg-orange-500 active:scale-95 transition text-2xl font-black tracking-widest px-14 py-4 rounded shadow-[0_0_40px_rgba(255,100,0,0.4)]"
           >
-            {phase === "menu" ? "▶ DEPLOY" : "↻ REDEPLOY"}
+            {phase === "menu" ? "▶ PLAY" : "↻ REPLAY"}
           </button>
           {isVictory && (
             <button
