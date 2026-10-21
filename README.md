@@ -1,21 +1,35 @@
-# STRIKEZONE — Tactical Browser FPS
+# 🎯 STRIKEZONE — Tactical Browser FPS
 
-A fast, COD-style wave shooter that runs entirely in the browser. Built with **Next.js 14 + React Three Fiber / Three.js + Zustand + Tailwind**. No downloaded assets — every 3D model is built from primitives and every sound effect is synthesized live with the Web Audio API.
+[![Play it live](https://img.shields.io/badge/▶_PLAY_IT_LIVE-strike--zone--game--pink.vercel.app-orange?style=for-the-badge)](https://strike-zone-game-pink.vercel.app)
+[![Docker image](https://github.com/Paras-PB/StrikeZoneGame/actions/workflows/main.yml/badge.svg)](https://github.com/Paras-PB/StrikeZoneGame/actions)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org)
+[![Three.js](https://img.shields.io/badge/Three.js-WebGL-black)](https://threejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org)
 
-**Survive 10 waves. Earn a perk after every wave. Kill the Juggernaut.**
+A fast, COD-style **wave shooter that runs entirely in your browser** — no downloads, no assets. Every 3D model is built from primitives and every sound effect is synthesized live with the Web Audio API.
 
-## Play
+**Survive 10 waves. Draft a perk after every wave. Kill the Juggernaut. Then decide: extract, or push into endless.**
+
+> 3 maps · 9 enemy types · 2 bosses · 6 weapons · 12 achievements · 8 ranks · ~100 kB first load
+
+---
+
+## ▶ Play
+
+**Online:** **[strike-zone-game-pink.vercel.app](https://strike-zone-game-pink.vercel.app)** — just open it and click **PLAY**. Desktop Chrome/Edge recommended (mouse aiming uses pointer lock).
+
+**Locally:**
 
 ```bash
+git clone https://github.com/Paras-PB/StrikeZoneGame.git
+cd StrikeZoneGame
 npm install
-npm run dev   # http://localhost:3000
+npm run dev        # http://localhost:3000
 ```
 
-Production: `npm run build && npm start`. Desktop Chrome/Edge recommended (pointer lock aiming). Add `?lowfx` to the URL for a low-spec mode (shadows off) on weak GPUs.
+Production: `npm run build && npm start`. Weak GPU? Add `?lowfx` to the URL (shadows off), or set Quality to Low in Settings.
 
-## Docker
-
-Every push to `main` publishes an image to GitHub Packages (GHCR):
+**Docker** — every push to `main` publishes an image to GitHub Packages (GHCR):
 
 ```bash
 docker pull ghcr.io/paras-pb/strikezonegame:latest
@@ -25,91 +39,100 @@ docker run -p 3000:3000 ghcr.io/paras-pb/strikezonegame:latest
 
 Or build it yourself from the repo root: `docker build -t strikezone .`
 
+---
 
-## V4 — FRONTIER
+## 🕹️ How to play
 
-- **Forest Outpost map** — a second arena at dawn: 46 pines, 3 log cabins, a watchtower, rocks and a log palisade, in warm mist (it matches the menu photo). Pick your map on the menu; the Arena is still there.
-- **Sentry turret (F)** — earn one every 2 waves (start with 1, hold max 2). Deploys where you stand and auto-fires at the nearest hostile for 45 seconds. Sentry kills pay +100.
-- **Marksman enemy** (wave 6+) — keeps ~24 m distance, paints you with a visible red laser for ~1.15 s, then fires one heavy shot. Break line of sight to cancel his aim.
-- **M249 SAW** (key 5) — belt-fed LMG: 100-round mag, 800 rpm, built for crowds.
-- **Tactical minimap** — live top-down map (top-left): red dots are hostiles moving in real time (magenta = Juggernaut, orange = Marksman), white arrow is you, plus zone ring, barrels, sentry and airstrike markers.
-- **Airstrike (X)** — every 25 kills earns one. Call it on your aim point: a red target ring marks the zone, then 6 shells land over ~1.6 s.
-- **Health bag (H)** — deployable first-aid station: heals 15 HP/s while you stand in its green ring, lasts 12 s. Start with 1, earn +1 every 3 waves (max 3). Drop it inside the defend zone.
+You hold an arena against escalating waves. Clear a wave → **draft 1 of 3 stacking perks** → next wave hits harder. Some waves change the rules: fight at **night** (every 3rd wave), in a **storm** (rain, fog), or **defend the zone** (hold the glowing ring for 60 s — the timer only ticks while you're inside). One **supply drop** parachutes in per wave with a medkit, ammo, grenades, or 20 s of double-damage **Overdrive**.
 
+Wave 10 is a boss. Clear it and you win — or keep going: **endless mode** scales forever, with a boss every 5 waves and your best wave saved. Kills build a **combo multiplier** (up to ×5) and earn killstreak tools: a sentry turret, health bags, and an airstrike every 25 kills.
 
-## V5 — GUNSHIP
-
-- **Gunship boss** — an attack helicopter replaces the Juggernaut on alternating boss waves (10 = Juggernaut, 15 = Gunship, 20 = Juggernaut, …). It orbits the arena, strafes with a minigun, and fires telegraphed rocket salvos — red rings shrink before impact. At 50% HP it gets angry: faster orbit, faster salvos. Ground explosions can't reach it; shoot it or lock it.
-- **FIM-92 Stinger** (key 6) — lock-on launcher: hold RMB on a drone or the gunship for 0.8 s until LOCKED, then fire a homing rocket (340 splash damage). Dumb-fires straight without a lock.
-- **Storm waves** — waves 2, 6, 14, 22… (every 4th, skipping night/boss waves) roll in with rain, dense fog and dim light.
-- **2 new achievements** — SKYFALL (down the gunship) and STORM RIDER (clear a storm wave), 10 total.
-- Boss bar and minimap handle both bosses; the gunship plots as the ringed magenta dot.
-
-
-## V6 — EVERFALL
-
-- **Leafy trees** — the cone pines are gone from the woods: big broadleaf trees now (thick trunks, clustered canopies, gentle sway), green on Forest Outpost with a few pines left, all golden on the new map.
-- **Autumn Ridge** (third map) — the outpost at sunset: golden canopy, warm haze, leaf-litter ground and **falling leaves** in the air all match.
-- **Stalker** (woods maps, wave 7+) — a ghillie-suited ambusher. Near-invisible while he holds still (16% opacity, flickers on the minimap); stray within 9 m or wound him and he rushes you at runner speed, fighting at shotgun range.
-- **2 new achievements** — TIMBER (down a Stalker) and AUTUMN OPERATOR (win a run on Autumn Ridge). 12 total.
-
-
-## V7 — PAUSE & SETTINGS
-
-- **Pause menu (Esc)** — releasing the mouse mid-run now pauses the game instead of just unlocking: the whole simulation freezes (enemies, grenades, rockets, the defend-the-zone timer, sentry/health-bag lifetimes, even airstrike and rocket-salvo timing). The pause menu shows your wave / kills / score with **Resume**, **Settings**, **Restart Run** and **Quit to Menu**.
-- **Settings** — on the main menu and inside the pause menu, saved automatically to your browser:
-  - **Mouse sensitivity** — ×0.3 to ×2.5 multiplier on look speed.
-  - **Master volume** — 0–100% for all synthesized SFX.
-  - **Invert Y** — flip vertical mouse aim.
-  - **Quality** — High, or Low (shadows off + resolution capped, the same treatment as `?lowfx` mode) for weaker GPUs.
-
-## Controls
+## ⌨️ Controls
 
 | Input | Action |
 |---|---|
 | WASD | Move |
 | SHIFT | Sprint |
-| SPACE | Jump (slide-jump preserves momentum) |
-| C / CTRL | Slide (needs momentum — chain it) |
+| SPACE | Jump (slide-jumps and bunny-hops preserve momentum) |
+| C / CTRL | Slide (needs momentum — chain it out of a sprint) |
 | Mouse | Aim (pointer lock) |
 | LMB / RMB | Fire / Aim down sights |
 | R | Reload |
+| 1 – 6 | Select weapon (see arsenal below) |
 | G | Throw frag grenade |
-| 1 / 2 / 3 / 4 | AR / SMG / Shotgun / Sniper |
-| ESC | Pause menu (V7) |
+| F | Deploy sentry turret |
+| H | Deploy health bag |
+| X | Call airstrike (earned every 25 kills) |
+| ESC | Pause menu (resume / settings / restart / quit) |
 
-## What's in V3 — AIRBORNE
+## 🔫 Arsenal
 
-- **Drone enemies** — flying units (from wave 5) that hover at ~3.3m, circle you and fire down. Aim up, and hit the glowing core for a "headshot". They crash out of the sky when killed.
-- **Juggernaut Phase 2** — at 40% HP the boss enrages (+55% speed, +30% damage) and calls in 3 escorts. The HUD boss bar shows ENRAGED.
-- **Defend-the-zone waves** (4, 8, then every 7th in endless) — hold the glowing zone for 60 seconds while reinforcements trickle in. The timer only counts down while you're inside the zone.
-- **Endless mode** — after clearing wave 10, extract for victory or continue: waves scale forever, a Juggernaut returns every 5 waves, your best endless wave is saved.
-- **Supply drops** — one per wave from wave 2: a crate parachutes in under a beacon. Reach it for a random reward — medkit, full ammo, +2 grenades, or 20s of **Overdrive** (double damage).
-- **Frag grenades (G)** — arcing, bouncing, 1.6s fuse, big radial damage. Start with 3, +1 per cleared wave, and they chain beautifully with barrels and Exploders.
-- **Sniper — L96 WHISPER** (key **4**): 150 damage, bolt-action pace, and a true 8× scope on ADS (zoomed FOV, scope overlay, fine aim sensitivity).
-- **XP & ranks** — runs earn persistent XP: Recruit → Corporal → Sergeant → Lieutenant → Captain → Major → Colonel → Commander, with a progress bar in the menu.
-- **8 achievements** — First Blood, Demolitionist, Sharpshooter, Untouchable, Night Owl, Boss Slayer, Rampage, Survivor. Toast popups in-game, checklist in the menu, saved across sessions.
+| Key | Weapon | Role |
+|---|---|---|
+| 1 | **MK-7 PHANTOM** | Assault rifle — the all-rounder |
+| 2 | **VK-9 HORNET** | SMG — fastest fire rate, close range |
+| 3 | **BR-12 BREAKER** | Shotgun — 8 pellets, devastating up close |
+| 4 | **L96 WHISPER** | Sniper — 150 dmg, true 8× scope on ADS |
+| 5 | **M249 SAW** | LMG — 100-round belt, 800 rpm, built for crowds |
+| 6 | **FIM-92 STINGER** | Lock-on launcher — hold RMB on air targets 0.8 s, fire a homing rocket |
 
-## What's in V2
+Plus **frag grenades** (arc, bounce, 1.6 s fuse), **explosive barrels** that chain-react, a deployable **sentry turret** (45 s, auto-fires, +1 charge every 2 waves) and **health bags** (heal 15 HP/s inside the ring, 12 s).
 
-- **5 enemy types** — Soldiers, fast **Runners**, tanky **Heavies**, **Exploders** that sprint at you and detonate (shoot them from far away, or use their blast against their friends), and a **Wave 10 boss: the Juggernaut**, with its own HUD health bar.
-- **Perk draft** — after every cleared wave, pick 1 of 3 stacking upgrades: damage, speed, fast reload, max health, ammo logistics, or faster regen.
-- **Explosive barrels** — the red/yellow-banded barrels actually explode now: radial damage to enemies (and you, if you're careless), chain kills included. They respawn each wave.
-- **Shotgun (BR-12 Breaker)** — 8-pellet hitscan, devastating up close.
-- **Combo system** — chained kills within 3.5s multiply score up to ×5, with DOUBLE KILL / TRIPLE KILL / RAMPAGE announcements.
-- **Night ops** — every 3rd wave is fought at night under floodlights and stars.
-- **Game feel** — final-kill slow-motion, floating damage numbers, a distinct headshot *ping*, accuracy / headshot stats on the end screen, and a persistent best score (localStorage).
-- **Game feel (from V1)** — momentum sliding with camera roll + FOV kick, bunny-hop chains, health regen, tracers, hitmarkers, killfeed, synthesized gunshots/footsteps/reloads.
+## 👾 Enemies & bosses
 
-## Architecture
+- **Soldier** — standard rifleman. **Runner** — fast and light. **Heavy** — slow tank.
+- **Exploder** — sprints at you and detonates. Shoot him early, or let his blast clear his friends.
+- **Marksman** (wave 6+) — holds ~24 m, paints you with a red laser for ~1.15 s, then one heavy shot. Break line of sight to cancel the aim.
+- **Drone** (wave 5+) — hovers at ~3.3 m and fires down. Hit the glowing core for a "headshot"; it crashes when killed.
+- **Stalker** (woods maps, wave 7+) — ghillie ambusher, near-invisible (16% opacity) while still. Stray within 9 m or wound him and he rushes you.
+- **JUGGERNAUT** (boss, wave 10) — huge HP bar, and at 40% health he **enrages**: +55% speed, +30% damage, and calls in 3 escorts.
+- **GUNSHIP** (boss, alternating boss waves from 15) — an attack helicopter that orbits the arena, strafes with a minigun, and fires telegraphed rocket salvos (red rings shrink before impact). Ground explosions can't reach it — shoot it, or lock it with the Stinger. At 50% HP it speeds up both.
 
-- `lib/game.ts` — shared mutable runtime (colliders, enemy/barrel registries, FX queues, explosions, slow-mo). Kept outside React so the render loop never re-renders at 60fps.
-- `lib/store.ts` — Zustand store for UI state only: phase (`menu → playing → perk → dead/victory`), health, ammo, weapons, perks, combo, stats, boss HP.
-- `lib/audio.ts` — all SFX synthesized with WebAudio; zero audio files.
-- `components/` — `Player` (movement, hitscan, pellets, barrels), `Enemies` (AI, waves, kinds, boss), `World` (arena, day/night lighting), `Barrels`, `WeaponModel`, `Effects` (tracers, impacts, explosions), `HUD`, `MainMenu`, `PerkDraft`.
+## 🗺️ Maps
+
+- **🏭 The Arena** — the original battleground: crates, cover, floodlights.
+- **🌲 Forest Outpost** — dawn mist, 46 trees, log cabins, a watchtower and a palisade.
+- **🍂 Autumn Ridge** — the outpost at sunset: golden canopy, leaf-litter ground, falling leaves.
+
+## 📈 Progression & polish
+
+- **Perk draft** after every wave: damage, speed, reload, max health, ammo, regen — they stack all run.
+- **XP & 8 ranks** — Recruit → Corporal → Sergeant → Lieutenant → Captain → Major → Colonel → Commander, persistent across sessions.
+- **12 achievements** with in-game toasts and a menu checklist (First Blood, Demolitionist, Sharpshooter, Night Owl, Boss Slayer, Skyfall, Storm Rider, Timber, …).
+- **Combo system** — chained kills within 3.5 s multiply score up to ×5, with DOUBLE KILL / TRIPLE KILL / RAMPAGE callouts.
+- **Live tactical minimap** — enemies in real time (bosses and marksmen marked), zone, barrels, sentry and airstrike markers.
+- **Game feel** — final-kill slow-motion, floating damage numbers, headshot *ping*, tracers, hitmarkers, killfeed, damage flash, camera roll + FOV kick on slides.
+- **Pause & settings** — Esc freezes the whole simulation (timers included). Settings, saved to your browser: mouse sensitivity ×0.3–2.5, master volume, invert-Y, and High/Low quality.
+
+---
+
+## 🏗️ Architecture
+
+The game state is split so the render loop never re-renders React at 60 fps:
+
+- `lib/game.ts` — shared mutable runtime: colliders, enemy/barrel registries, FX queues, explosions, slow-mo, pause deadline-shifting. Pure data + math, no React.
+- `lib/store.ts` — Zustand store for UI state only: phase (`menu → playing → perk → paused → dead/victory`), health, ammo, weapons, perks, combo, stats, boss HP, settings, XP/achievements.
+- `lib/audio.ts` — every SFX synthesized with WebAudio (shots, reloads, explosions, footsteps, UI); zero audio files.
+- `components/` — `Player` (movement, hitscan, lock-on), `Enemies` (AI, waves, kinds, both bosses), `World` (maps, day/night/storm lighting), `WeaponModel`, `Effects` (tracers, impacts, explosions), `HUD`, `Minimap`, `MainMenu`, `PauseMenu`, `SettingsPanel`, `PerkDraft`, plus one component per system (turret, grenades, rockets, airstrike, zone, supply drops, health bag).
 
 Wave scaling: enemy count `3 + wave × 2` (cap 14), HP `90 + wave × 14`, speed and fire rate scale per wave, with kind-specific multipliers on top.
 
-## Tech
+## 🛠️ Tech
 
-Next.js 14 · React 18 · Three.js · @react-three/fiber · @react-three/drei · Zustand · Tailwind CSS · TypeScript
+Next.js 14 · React 18 · Three.js · @react-three/fiber · @react-three/drei · Zustand · Tailwind CSS · TypeScript · Docker (standalone output) · deployed on Vercel
+
+## 📜 Version history
+
+| Version | Highlights |
+|---|---|
+| V1 | The original: 10 waves, AR/SMG, sprint/slide/jump, hitscan, synthesized SFX |
+| V2 | Enemy types + Juggernaut boss, BR-12 shotgun, perk draft, combo system, night waves |
+| V3 — AIRBORNE | Drones, defend-the-zone, endless mode, grenades, L96 sniper, XP/ranks, achievements |
+| V4 — FRONTIER | Forest Outpost map, sentry turret, Marksman, M249 SAW, airstrike, tactical minimap |
+| V5 — GUNSHIP | Gunship boss, FIM-92 Stinger lock-on, storm waves |
+| V6 — EVERFALL | Leafy broadleaf trees, Autumn Ridge map, Stalker ambusher |
+| V7 — PAUSE & SETTINGS | Esc pause menu that truly freezes the sim; sensitivity / volume / invert-Y / quality settings |
+
+---
+
+Built by **Paras Dwivedi** — CSE (AI & ML) student at VIT. PRs and issues welcome.
