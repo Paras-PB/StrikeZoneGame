@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type WeaponId = "ar" | "smg" | "sg";
+export type WeaponId = "ar" | "smg" | "sg" | "sn";
 export type Phase = "menu" | "playing" | "perk" | "dead" | "victory";
 
 export interface WeaponDef {
@@ -63,12 +63,27 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     range: 42,
     pellets: 8,
   },
+  sn: {
+    id: "sn",
+    name: "L96 WHISPER",
+    damage: 150,
+    headMult: 2.0,
+    rpm: 42,
+    mag: 5,
+    reserve: 30,
+    reloadTime: 2.8,
+    spreadHip: 0.06,
+    spreadAds: 0.0005,
+    auto: true,
+    range: 240,
+  },
 };
 
 const fullAmmo = (): Record<WeaponId, { mag: number; reserve: number }> => ({
   ar: { mag: WEAPONS.ar.mag, reserve: WEAPONS.ar.reserve },
   smg: { mag: WEAPONS.smg.mag, reserve: WEAPONS.smg.reserve },
   sg: { mag: WEAPONS.sg.mag, reserve: WEAPONS.sg.reserve },
+  sn: { mag: WEAPONS.sn.mag, reserve: WEAPONS.sn.reserve },
 });
 
 // ---- perks (chosen between waves) ----
@@ -84,11 +99,62 @@ export const PERK_DEFS: Record<PerkId, { name: string; icon: string; desc: strin
 };
 export const PERK_POOL: PerkId[] = ["damage", "speed", "reload", "vitality", "ammo", "regen"];
 
-function loadBest(): number {
+// ---- XP & ranks (persistent) ----
+export const RANKS: { xp: number; name: string }[] = [
+  { xp: 0, name: "RECRUIT" },
+  { xp: 200, name: "CORPORAL" },
+  { xp: 500, name: "SERGEANT" },
+  { xp: 1000, name: "LIEUTENANT" },
+  { xp: 1800, name: "CAPTAIN" },
+  { xp: 3000, name: "MAJOR" },
+  { xp: 5000, name: "COLONEL" },
+  { xp: 8000, name: "COMMANDER" },
+];
+
+export function rankFor(xp: number): { current: string; next: string | null; nextXp: number | null; progress: number } {
+  let idx = 0;
+  for (let i = 0; i < RANKS.length; i++) if (xp >= RANKS[i].xp) idx = i;
+  const cur = RANKS[idx];
+  const nxt = RANKS[idx + 1] ?? null;
+  const progress = nxt ? (xp - cur.xp) / (nxt.xp - cur.xp) : 1;
+  return { current: cur.name, next: nxt?.name ?? null, nextXp: nxt?.xp ?? null, progress: Math.min(1, Math.max(0, progress)) };
+}
+
+// ---- achievements (persistent) ----
+export type AchId = "firstblood" | "demolitionist" | "sharpshooter" | "untouchable" | "nightowl" | "bossslayer" | "rampage" | "survivor";
+
+export const ACH_DEFS: Record<AchId, { name: string; icon: string; desc: string }> = {
+  firstblood: { name: "FIRST BLOOD", icon: "🩸", desc: "Get your first elimination." },
+  demolitionist: { name: "DEMOLITIONIST", icon: "💣", desc: "5 barrel kills in a single run." },
+  sharpshooter: { name: "SHARPSHOOTER", icon: "🎯", desc: "10 headshot kills in a single run." },
+  untouchable: { name: "UNTOUCHABLE", icon: "🛡️", desc: "Clear a wave without taking damage." },
+  nightowl: { name: "NIGHT OWL", icon: "🦉", desc: "Clear a night wave." },
+  bossslayer: { name: "BOSS SLAYER", icon: "☠️", desc: "Kill the Juggernaut." },
+  rampage: { name: "RAMPAGE", icon: "🔥", desc: "Reach a ×5 combo chain." },
+  survivor: { name: "SURVIVOR", icon: "🪖", desc: "Reach wave 7." },
+};
+
+function loadNum(key: string): number {
   try {
-    return Number(localStorage.getItem("strikezone-best") || 0) || 0;
+    return Number(localStorage.getItem(key) || 0) || 0;
   } catch {
     return 0;
+  }
+}
+function loadAch(): string[] {
+  try {
+    const raw = localStorage.getItem("strikezone-achievements");
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function save(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable */
   }
 }
 
@@ -112,7 +178,7 @@ interface GameState {
   killfeed: { id: number; text: string }[];
   damageFlash: number;
   timeSurvived: number;
-  // V2: combo & stats
+  // combo & stats
   combo: number;
   lastKillAt: number;
   shots: number;
@@ -122,18 +188,39 @@ interface GameState {
   lastHitAt: number;
   bestScore: number;
   newBest: boolean;
-  // V2: boss
+  // boss
   bossHealth: number;
   bossMax: number;
-  // V2: perk multipliers
+  bossEnraged: boolean;
+  // perk multipliers
   damageMult: number;
   moveMult: number;
   reloadMult: number;
   regenMult: number;
   perkChoices: PerkId[];
   perksOwned: string[];
+  // V3: grenades & overdrive
+  grenades: number;
+  overdriveUntil: number;
+  // V3: objective waves
+  objective: "elim" | "defend";
+  objectiveTimeLeft: number;
+  zoneX: number;
+  zoneZ: number;
+  playerInZone: boolean;
+  // V3: endless
+  endless: boolean;
+  bestEndlessWave: number;
+  // V3: meta
+  xp: number;
+  lastRunXp: number;
+  achievements: string[];
+  achToast: { id: string; name: string; icon: string; at: number } | null;
+  barrelKills: number;
+  tookDamageThisWave: boolean;
   startGame: () => void;
   finish: (phase: "dead" | "victory") => void;
+  unlockAch: (id: AchId) => void;
   set: (p: Partial<GameState>) => void;
   addKillfeed: (text: string) => void;
   resetAmmo: () => void;
@@ -141,7 +228,7 @@ interface GameState {
 
 let feedId = 1;
 
-export const useGameStore = create<GameState>((set) => ({
+export const useGameStore = create<GameState>((set, get) => ({
   phase: "menu",
   health: 100,
   maxHealth: 100,
@@ -168,16 +255,32 @@ export const useGameStore = create<GameState>((set) => ({
   headshots: 0,
   lastHitDmg: 0,
   lastHitAt: 0,
-  bestScore: typeof window !== "undefined" ? loadBest() : 0,
+  bestScore: typeof window !== "undefined" ? loadNum("strikezone-best") : 0,
   newBest: false,
   bossHealth: 0,
   bossMax: 0,
+  bossEnraged: false,
   damageMult: 1,
   moveMult: 1,
   reloadMult: 1,
   regenMult: 1,
   perkChoices: [],
   perksOwned: [],
+  grenades: 3,
+  overdriveUntil: 0,
+  objective: "elim",
+  objectiveTimeLeft: 0,
+  zoneX: 0,
+  zoneZ: 10,
+  playerInZone: false,
+  endless: false,
+  bestEndlessWave: typeof window !== "undefined" ? loadNum("strikezone-best-endless") : 0,
+  xp: typeof window !== "undefined" ? loadNum("strikezone-xp") : 0,
+  lastRunXp: 0,
+  achievements: typeof window !== "undefined" ? loadAch() : [],
+  achToast: null,
+  barrelKills: 0,
+  tookDamageThisWave: false,
   startGame: () =>
     set({
       phase: "playing",
@@ -201,24 +304,60 @@ export const useGameStore = create<GameState>((set) => ({
       newBest: false,
       bossHealth: 0,
       bossMax: 0,
+      bossEnraged: false,
       damageMult: 1,
       moveMult: 1,
       reloadMult: 1,
       regenMult: 1,
       perkChoices: [],
       perksOwned: [],
+      grenades: 3,
+      overdriveUntil: 0,
+      objective: "elim",
+      objectiveTimeLeft: 0,
+      playerInZone: false,
+      endless: false,
+      lastRunXp: 0,
+      barrelKills: 0,
+      tookDamageThisWave: false,
       ammo: fullAmmo(),
     }),
   finish: (phase) =>
     set((s) => {
       const best = Math.max(s.bestScore, s.score);
-      try {
-        localStorage.setItem("strikezone-best", String(best));
-      } catch {
-        /* storage unavailable */
+      save("strikezone-best", String(best));
+      let bestEndless = s.bestEndlessWave;
+      if (s.endless && s.wave > bestEndless) {
+        bestEndless = s.wave;
+        save("strikezone-best-endless", String(bestEndless));
       }
-      return { phase, bestScore: best, newBest: s.score > s.bestScore && s.score > 0, bossHealth: 0 };
+      const xpGain =
+        s.kills * 10 +
+        s.headshots * 5 +
+        Math.floor(s.score / 50) +
+        s.wave * 25 +
+        (phase === "victory" ? 150 : 0);
+      const xp = s.xp + xpGain;
+      save("strikezone-xp", String(xp));
+      return {
+        phase,
+        bestScore: best,
+        newBest: s.score > s.bestScore && s.score > 0,
+        bossHealth: 0,
+        bossEnraged: false,
+        bestEndlessWave: bestEndless,
+        xp,
+        lastRunXp: xpGain,
+      };
     }),
+  unlockAch: (id) => {
+    const s = get();
+    if (s.achievements.includes(id)) return;
+    const achievements = [...s.achievements, id];
+    save("strikezone-achievements", JSON.stringify(achievements));
+    const d = ACH_DEFS[id];
+    set({ achievements, achToast: { id, name: d.name, icon: d.icon, at: Date.now() } });
+  },
   set: (p) => set(p),
   addKillfeed: (text) =>
     set((s) => ({

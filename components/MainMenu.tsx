@@ -1,5 +1,6 @@
 "use client";
-import { useGameStore } from "@/lib/store";
+import { useGameStore, ACH_DEFS, rankFor } from "@/lib/store";
+import type { AchId } from "@/lib/store";
 
 export default function MainMenu() {
   const phase = useGameStore((s) => s.phase);
@@ -15,6 +16,28 @@ export default function MainMenu() {
   const newBest = useGameStore((s) => s.newBest);
   const perksOwned = useGameStore((s) => s.perksOwned);
   const accuracy = shots > 0 ? Math.round((hits / shots) * 100) : 0;
+  const xp = useGameStore((s) => s.xp);
+  const lastRunXp = useGameStore((s) => s.lastRunXp);
+  const achievements = useGameStore((s) => s.achievements);
+  const bestEndlessWave = useGameStore((s) => s.bestEndlessWave);
+  const endless = useGameStore((s) => s.endless);
+  const rank = rankFor(xp);
+
+  const continueEndless = () => {
+    const s = useGameStore.getState();
+    s.resetAmmo();
+    s.set({
+      phase: "playing",
+      endless: true,
+      pendingWave: s.wave + 1,
+      health: s.maxHealth,
+      bossHealth: 0,
+      bossMax: 0,
+    });
+    setTimeout(() => {
+      document.querySelector("canvas")?.requestPointerLock?.();
+    }, 50);
+  };
 
   const start = async () => {
     startGame();
@@ -42,7 +65,7 @@ export default function MainMenu() {
             ? `KIA — Wave ${wave} · ${kills} kills · ${score} pts · survived ${Math.floor(timeSurvived)}s`
             : isVictory
             ? `MISSION COMPLETE — ${kills} kills · ${score} pts · ${Math.floor(timeSurvived)}s`
-            : "10 waves. Runners, heavies, exploders — and a Juggernaut at the end. Shoot the red barrels. Earn a perk every wave. Survive."}
+            : "V3 AIRBORNE — drones in the sky, zones to defend, supply drops, grenades, a sniper, and a Juggernaut at the end. Survive."}
         </p>
 
         {(isDead || isVictory) && (
@@ -66,6 +89,12 @@ export default function MainMenu() {
             ))}
           </div>
         )}
+        {(isDead || isVictory) && lastRunXp > 0 && (
+          <div className="mb-4 text-sm text-white/70">
+            <span className="text-cyan-300 font-black">+{lastRunXp} XP</span> · Rank: <b className="text-white">{rank.current}</b>
+            {endless && <> · Endless wave {wave} · Best endless wave {Math.max(bestEndlessWave, wave)}</>}
+          </div>
+        )}
         {newBest && (isDead || isVictory) && (
           <div className="mb-4 text-yellow-300 font-black tracking-[0.3em] text-sm animate-pulse">★ NEW BEST SCORE ★</div>
         )}
@@ -86,18 +115,55 @@ export default function MainMenu() {
             <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">COMBAT</div>
             <ul className="text-sm text-white/80 space-y-1">
               <li><b>LMB</b> fire · <b>RMB</b> aim (ADS)</li>
-              <li><b>R</b> reload · <b>1 / 2 / 3</b> AR / SMG / Shotgun</li>
+              <li><b>R</b> reload · <b>G</b> frag grenade</li>
+              <li><b>1 / 2 / 3 / 4</b> AR / SMG / Shotgun / Sniper (RMB = scope)</li>
               <li>Headshots ×2 · red barrels explode · perks every wave</li>
             </ul>
           </div>
         </div>
 
-        <button
-          onClick={start}
-          className="pointer-events-auto bg-orange-600 hover:bg-orange-500 active:scale-95 transition text-2xl font-black tracking-widest px-14 py-4 rounded shadow-[0_0_40px_rgba(255,100,0,0.4)]"
-        >
-          {phase === "menu" ? "▶ DEPLOY" : "↻ REDEPLOY"}
-        </button>
+        <div className="flex gap-3 justify-center flex-wrap">
+          <button
+            onClick={start}
+            className="pointer-events-auto bg-orange-600 hover:bg-orange-500 active:scale-95 transition text-2xl font-black tracking-widest px-14 py-4 rounded shadow-[0_0_40px_rgba(255,100,0,0.4)]"
+          >
+            {phase === "menu" ? "▶ DEPLOY" : "↻ REDEPLOY"}
+          </button>
+          {isVictory && (
+            <button
+              onClick={continueEndless}
+              className="pointer-events-auto bg-cyan-700 hover:bg-cyan-600 active:scale-95 transition text-2xl font-black tracking-widest px-10 py-4 rounded shadow-[0_0_40px_rgba(0,180,255,0.35)]"
+            >
+              ∞ ENDLESS
+            </button>
+          )}
+        </div>
+        {isVictory && <div className="mt-2 text-xs text-white/40">ENDLESS: waves keep scaling past 10 — how far can you get?</div>}
+
+        {phase === "menu" && (
+          <div className="mt-6 text-left bg-white/5 border border-white/10 rounded p-4">
+            <div className="flex justify-between items-baseline mb-1">
+              <div className="font-black tracking-widest text-sm">RANK: <span className="text-cyan-300">{rank.current}</span></div>
+              <div className="text-xs text-white/50">{xp} XP{rank.next ? ` · next: ${rank.next} at ${rank.nextXp}` : " · MAX RANK"}{bestEndlessWave > 0 ? ` · best endless wave ${bestEndlessWave}` : ""}</div>
+            </div>
+            <div className="h-2 bg-white/10 rounded overflow-hidden mb-4">
+              <div className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300" style={{ width: `${Math.round(rank.progress * 100)}%` }} />
+            </div>
+            <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">ACHIEVEMENTS — {achievements.length}/8</div>
+            <div className="grid grid-cols-4 gap-2">
+              {(Object.keys(ACH_DEFS) as AchId[]).map((id) => {
+                const d = ACH_DEFS[id];
+                const got = achievements.includes(id);
+                return (
+                  <div key={id} className={`rounded p-2 border ${got ? "bg-yellow-500/10 border-yellow-400/40" : "bg-black/30 border-white/5 opacity-45"}`} title={d.desc}>
+                    <div className="text-lg leading-none mb-1">{d.icon}</div>
+                    <div className="text-[10px] font-black tracking-wide leading-tight">{d.name}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="mt-3 text-xs text-white/40">Click locks your mouse for aiming · ESC to pause/unlock</div>
 
         <ClickToLockHelper />

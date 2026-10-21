@@ -23,10 +23,18 @@ interface Bot {
   dmgMult: number;
   scaleF: number;
   exploded: boolean;
+  enraged: boolean;
 }
 
 let botId = 1;
 const MAX_WAVE = 10;
+const DRONE_HOVER = 3.3;
+const ZONE_SPOTS: [number, number][] = [
+  [0, 10],
+  [-18, 8],
+  [16, 14],
+  [0, -6],
+];
 
 const KIND_STATS: Record<EnemyKind, { hp: number; speed: number; scale: number; dmg: number }> = {
   soldier: { hp: 1, speed: 1, scale: 1, dmg: 1 },
@@ -34,6 +42,7 @@ const KIND_STATS: Record<EnemyKind, { hp: number; speed: number; scale: number; 
   heavy: { hp: 3.4, speed: 0.6, scale: 1.35, dmg: 1.5 },
   exploder: { hp: 0.7, speed: 1.45, scale: 0.95, dmg: 1 },
   boss: { hp: 1, speed: 0.55, scale: 1.9, dmg: 2 },
+  drone: { hp: 0.45, speed: 1.05, scale: 1, dmg: 0.8 },
 };
 
 const KIND_STYLE: Record<EnemyKind, { torso: string; vest: string; visor: string }> = {
@@ -42,6 +51,7 @@ const KIND_STYLE: Record<EnemyKind, { torso: string; vest: string; visor: string
   heavy: { torso: "#3d434f", vest: "#22252b", visor: "#ff7a2a" },
   exploder: { torso: "#6e1f1f", vest: "#3a0f0f", visor: "#ff2a2a" },
   boss: { torso: "#571622", vest: "#1a0508", visor: "#ff2ad4" },
+  drone: { torso: "#2c3540", vest: "#171b21", visor: "#39d0ff" },
 };
 
 function SoldierMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }) {
@@ -119,20 +129,86 @@ function SoldierMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }
   );
 }
 
+function DroneMesh({ bot, refs }: { bot: Bot; refs: Map<number, THREE.Group> }) {
+  const rotors = useRef<THREE.Group>(null);
+  useFrame((_, dt) => {
+    if (rotors.current) rotors.current.rotation.y += dt * 42;
+  });
+  return (
+    <group
+      ref={(g) => {
+        if (g) refs.set(bot.id, g);
+        else refs.delete(bot.id);
+      }}
+    >
+      {/* body */}
+      <mesh castShadow>
+        <boxGeometry args={[0.72, 0.24, 0.72]} />
+        <meshStandardMaterial color="#2c3540" roughness={0.5} metalness={0.6} />
+      </mesh>
+      {/* sensor eye */}
+      <mesh position={[0, -0.05, -0.38]}>
+        <sphereGeometry args={[0.13, 10, 10]} />
+        <meshStandardMaterial color="#39d0ff" emissive="#39d0ff" emissiveIntensity={2} />
+      </mesh>
+      {/* under-light */}
+      <mesh position={[0, -0.16, 0]}>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial color="#ff2a2a" emissive="#ff2a2a" emissiveIntensity={2.4} />
+      </mesh>
+      {/* gun */}
+      <mesh position={[0.15, -0.18, -0.2]}>
+        <boxGeometry args={[0.07, 0.07, 0.4]} />
+        <meshStandardMaterial color="#101216" metalness={0.6} roughness={0.4} />
+      </mesh>
+      {/* arms + spinning rotors */}
+      <group ref={rotors}>
+        {[
+          [-0.5, -0.5],
+          [0.5, -0.5],
+          [-0.5, 0.5],
+          [0.5, 0.5],
+        ].map(([x, z], i) => (
+          <group key={i} position={[x, 0.08, z]}>
+            <mesh rotation={[0, (i * Math.PI) / 4, 0]}>
+              <boxGeometry args={[0.55, 0.02, 0.07]} />
+              <meshBasicMaterial color="#9fb4c8" transparent opacity={0.55} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+      {[
+        [-0.38, -0.38],
+        [0.38, -0.38],
+        [-0.38, 0.38],
+        [0.38, 0.38],
+      ].map(([x, z], i) => (
+        <mesh key={"a" + i} position={[x * 0.75, 0.02, z * 0.75]} rotation={[0, Math.atan2(x, z), 0]}>
+          <boxGeometry args={[0.05, 0.05, 0.4]} />
+          <meshStandardMaterial color="#171b21" roughness={0.6} metalness={0.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export default function Enemies() {
   const bots = useRef<Bot[]>([]);
   const groups = useRef(new Map<number, THREE.Group>());
   const waveDelay = useRef(0);
+  const defendSpawnT = useRef(0);
   const [, force] = useReducer((x: number) => x + 1, 0);
   const [renderIds, setRenderIds] = useState<number[]>([]);
 
   const tmpV = useMemo(() => new THREE.Vector3(), []);
 
+  const baseHpFor = (w: number) => 90 + w * 14;
+
   function damagePlayer(dmg: number) {
     const st = useGameStore.getState();
     if (st.phase !== "playing") return;
     const hp = Math.max(0, st.health - dmg);
-    st.set({ health: hp, damageFlash: Date.now() });
+    st.set({ health: hp, damageFlash: Date.now(), tookDamageThisWave: true });
     playerState.lastHurt?.(0);
     sfxHurt();
     if (hp <= 0) {
@@ -154,14 +230,16 @@ export default function Enemies() {
 
   function pickKind(w: number): EnemyKind {
     const r = Math.random();
-    if (w >= 4 && r < 0.13) return "heavy";
-    if (w >= 3 && r < 0.33) return "exploder";
-    if (w >= 2 && r < 0.6) return "runner";
+    if (w >= 4 && r < 0.12) return "heavy";
+    if (w >= 5 && r < 0.27) return "drone";
+    if (w >= 3 && r < 0.47) return "exploder";
+    if (w >= 2 && r < 0.72) return "runner";
     return "soldier";
   }
 
-  function spawnBot(kind: EnemyKind, w: number, baseHp: number, posOverride?: THREE.Vector3) {
+  function spawnBot(kind: EnemyKind, w: number, posOverride?: THREE.Vector3) {
     const st = KIND_STATS[kind];
+    const baseHp = baseHpFor(w);
     let x: number, z: number;
     if (posOverride) {
       x = posOverride.x;
@@ -177,7 +255,7 @@ export default function Enemies() {
         z = -z;
       }
     }
-    const hp = kind === "boss" ? 1650 : Math.round(baseHp * st.hp);
+    const hp = kind === "boss" ? 1650 + Math.max(0, w - MAX_WAVE) * 220 : Math.round(baseHp * st.hp);
     const speed =
       kind === "boss" ? 4.4 : Math.min(9.5, (5.2 + Math.random() * 1.8 + w * 0.28) * st.speed);
     const b: Bot = {
@@ -195,6 +273,7 @@ export default function Enemies() {
       dmgMult: st.dmg,
       scaleF: st.scale,
       exploded: false,
+      enraged: false,
     };
     bots.current.push(b);
     enemyRegistry.set(b.id, {
@@ -210,25 +289,48 @@ export default function Enemies() {
     return b;
   }
 
+  function isBossWave(w: number, endless: boolean) {
+    return w === MAX_WAVE || (endless && w > MAX_WAVE && w % 5 === 0);
+  }
+  function isDefendWave(w: number, bossWave: boolean) {
+    return !bossWave && (w === 8 || w % 7 === 4);
+  }
+
   function spawnWave(w: number) {
     resetBarrels();
-    const baseHp = 90 + w * 14;
-    const isBossWave = w === MAX_WAVE;
-    const count = isBossWave ? 6 : Math.min(3 + w * 2, 14);
+    const s = useGameStore.getState();
+    s.set({ tookDamageThisWave: false });
+    if (w >= 7) s.unlockAch("survivor");
+    const bossWave = isBossWave(w, s.endless);
+    const defend = isDefendWave(w, bossWave);
+
+    if (defend) {
+      const [zx, zz] = ZONE_SPOTS[w % ZONE_SPOTS.length];
+      s.set({ objective: "defend", objectiveTimeLeft: 60, zoneX: zx, zoneZ: zz, playerInZone: false });
+      defendSpawnT.current = 2.4;
+      for (let i = 0; i < 5; i++) spawnBot(w === 1 ? "soldier" : pickKind(w), w);
+      s.set({ wave: w, enemiesLeft: 5, bossHealth: 0, bossMax: 0 });
+      s.addKillfeed(`🛡️ WAVE ${w} — DEFEND THE ZONE FOR 60s`);
+      setRenderIds(bots.current.map((b) => b.id));
+      force();
+      return;
+    }
+
+    s.set({ objective: "elim", objectiveTimeLeft: 0 });
+    const count = bossWave ? 6 : Math.min(3 + w * 2, 14);
     for (let i = 0; i < count; i++) {
-      spawnBot(w === 1 ? "soldier" : pickKind(w), w, baseHp);
+      spawnBot(w === 1 ? "soldier" : pickKind(w), w);
     }
     let total = count;
-    if (isBossWave) {
-      const boss = spawnBot("boss", w, baseHp, new THREE.Vector3(0, 0, -30));
+    if (bossWave) {
+      const boss = spawnBot("boss", w, new THREE.Vector3(0, 0, -30));
       total += 1;
-      useGameStore.getState().set({ bossHealth: boss.health, bossMax: boss.maxHealth });
+      s.set({ bossHealth: boss.health, bossMax: boss.maxHealth, bossEnraged: false });
     } else {
-      useGameStore.getState().set({ bossHealth: 0, bossMax: 0 });
+      s.set({ bossHealth: 0, bossMax: 0, bossEnraged: false });
     }
-    const s = useGameStore.getState();
     s.set({ wave: w, enemiesLeft: total });
-    if (isBossWave) s.addKillfeed("⚠ FINAL WAVE — JUGGERNAUT INBOUND ⚠");
+    if (bossWave) s.addKillfeed("⚠ JUGGERNAUT INBOUND ⚠");
     else if (w % 3 === 0) s.addKillfeed(`🌙 WAVE ${w} — NIGHT OPS, ${total} HOSTILES`);
     else s.addKillfeed(`WAVE ${w} INBOUND — ${total} HOSTILES`);
     setRenderIds(bots.current.map((b) => b.id));
@@ -268,8 +370,21 @@ export default function Enemies() {
           reg.alive = false;
           if (b.kind === "boss") s.set({ bossHealth: 0 });
           if (b.kind === "exploder") explodeBot(b);
-        } else if (b.kind === "boss" && Math.ceil(b.health) !== s.bossHealth) {
-          s.set({ bossHealth: Math.ceil(b.health) });
+        } else if (b.kind === "boss") {
+          // phase 2: enrage at 40% HP — faster, harder, calls escorts
+          if (!b.enraged && b.health <= b.maxHealth * 0.4) {
+            b.enraged = true;
+            b.speed *= 1.55;
+            b.dmgMult *= 1.3;
+            s.set({ bossEnraged: true });
+            s.addKillfeed("⚠ JUGGERNAUT ENRAGED — ESCORTS INBOUND ⚠");
+            for (let i = 0; i < 3; i++) {
+              spawnBot(i === 0 ? "runner" : "soldier", s.wave, new THREE.Vector3(b.pos.x + (i - 1) * 3, 0, b.pos.z + 3));
+            }
+            setRenderIds(bots.current.map((x) => x.id));
+            force();
+          }
+          if (Math.ceil(b.health) !== s.bossHealth) s.set({ bossHealth: Math.ceil(b.health) });
         }
       }
     }
@@ -282,8 +397,15 @@ export default function Enemies() {
       if (!b.alive) {
         b.deathT += dt;
         if (g) {
-          g.rotation.x = Math.min(-Math.PI / 2, g.rotation.x - dt * 4);
-          g.position.y = Math.max(-0.6, g.position.y - dt * 0.4);
+          if (b.kind === "drone") {
+            // drones crash out of the sky
+            g.position.y = Math.max(0.25, DRONE_HOVER - b.deathT * 5.5);
+            g.rotation.z = Math.min(1.1, b.deathT * 2.4);
+            g.rotation.x = Math.min(0.7, b.deathT * 1.8);
+          } else {
+            g.rotation.x = Math.min(-Math.PI / 2, g.rotation.x - dt * 4);
+            g.position.y = Math.max(-0.6, g.position.y - dt * 0.4);
+          }
         }
         if (b.deathT > 2.2) {
           bots.current.splice(i, 1);
@@ -305,12 +427,13 @@ export default function Enemies() {
         continue;
       }
 
-      // strafe weave (faster + wider than before)
-      const strafe = Math.sin(t * 2.3 + b.strafePhase) * 0.95;
+      // strafe weave (drones circle wider)
+      const strafe = Math.sin(t * 2.3 + b.strafePhase) * (b.kind === "drone" ? 1.25 : 0.95);
       const px = -tmpV.z * strafe;
       const pz = tmpV.x * strafe;
-      const wantDist = b.kind === "exploder" ? 0.5 : b.kind === "runner" ? 5 : b.kind === "heavy" ? 8.5 : b.kind === "boss" ? 9 : 6.5;
-      let approach = dist > wantDist ? 1.35 : dist < 4 ? -0.8 : 0.3;
+      const wantDist =
+        b.kind === "exploder" ? 0.5 : b.kind === "runner" ? 5 : b.kind === "heavy" ? 8.5 : b.kind === "boss" ? 9 : b.kind === "drone" ? 13 : 6.5;
+      let approach = dist > wantDist ? 1.35 : dist < 4 && b.kind !== "drone" ? -0.8 : 0.3;
       // long-range rush burst closes the gap fast
       let rush = dist > 22 ? 1.4 : dist > 14 ? 1.2 : 1;
       const vx = (tmpV.x * approach + px * 0.65) * b.speed * rush;
@@ -334,8 +457,12 @@ export default function Enemies() {
 
       if (g) {
         g.position.copy(b.pos);
-        // sprinty run bob + lean into motion
-        g.position.y = b.pos.y + Math.abs(Math.sin(t * 11 + b.strafePhase)) * 0.09;
+        if (b.kind === "drone") {
+          g.position.y = b.pos.y + DRONE_HOVER + Math.sin(t * 2.1 + b.strafePhase) * 0.25;
+        } else {
+          // sprinty run bob + lean into motion
+          g.position.y = b.pos.y + Math.abs(Math.sin(t * 11 + b.strafePhase)) * 0.09;
+        }
         g.rotation.y = Math.atan2(tmpV.x, tmpV.z) + Math.PI;
         g.rotation.x = THREE.MathUtils.clamp(b.speed * 0.02, 0, 0.16);
       }
@@ -347,9 +474,10 @@ export default function Enemies() {
 
       // shooting (exploders never shoot — they are the bullet)
       b.shootCd -= dt;
+      const eyeY = b.kind === "drone" ? DRONE_HOVER : 1.4;
       if (b.kind !== "exploder" && b.shootCd <= 0 && dist < 48 && dist > 3) {
         // LOS check: sample ray vs colliders coarsely
-        const from = new THREE.Vector3(b.pos.x, b.pos.y + 1.4, b.pos.z);
+        const from = new THREE.Vector3(b.pos.x, b.pos.y + eyeY, b.pos.z);
         const to = new THREE.Vector3(playerState.pos.x, playerState.pos.y + 1.4, playerState.pos.z);
         const dir = to.clone().sub(from);
         const len = dir.length();
@@ -385,7 +513,7 @@ export default function Enemies() {
       if (b.burst > 0) {
         b.burst -= dt * 7;
         if (Math.random() < dt * 7) {
-          const from = new THREE.Vector3(b.pos.x, b.pos.y + 1.35, b.pos.z);
+          const from = new THREE.Vector3(b.pos.x, b.pos.y + eyeY - 0.05, b.pos.z);
           const target = new THREE.Vector3(
             playerState.pos.x + (Math.random() - 0.5) * (1.2 + dist * 0.06),
             playerState.pos.y + 1.3 + (Math.random() - 0.5) * 0.8,
@@ -410,23 +538,68 @@ export default function Enemies() {
       setRenderIds(bots.current.map((b) => b.id));
     }
 
+    // ---- defend-the-zone objective ----
+    if (s.objective === "defend" && s.objectiveTimeLeft > 0) {
+      const dx = playerState.pos.x - s.zoneX;
+      const dz = playerState.pos.z - s.zoneZ;
+      const inZone = dx * dx + dz * dz < 36;
+      if (inZone !== s.playerInZone) s.set({ playerInZone: inZone });
+
+      // trickle reinforcements keep the pressure on
+      defendSpawnT.current -= dt;
+      if (defendSpawnT.current <= 0 && aliveCount < 8) {
+        defendSpawnT.current = 2.4;
+        spawnBot(pickKind(s.wave), s.wave);
+        setRenderIds(bots.current.map((b) => b.id));
+        force();
+      }
+
+      if (inZone) {
+        const tl = s.objectiveTimeLeft - dt;
+        if (tl <= 0) {
+          s.set({ objectiveTimeLeft: 0 });
+          // zone held — remaining hostiles are wiped (no score)
+          for (const b of bots.current) {
+            if (b.alive) {
+              b.health = 0;
+              if (b.kind === "exploder") b.exploded = true; // wiped cleanly — no parting blast
+              const reg = enemyRegistry.get(b.id);
+              if (reg) {
+                reg.health = 0;
+                reg.alive = false;
+              }
+            }
+          }
+          s.addKillfeed("🛡️ ZONE HELD — HOSTILES WIPED");
+        } else if (Math.ceil(tl) !== Math.ceil(s.objectiveTimeLeft)) {
+          s.set({ objectiveTimeLeft: tl });
+        }
+      }
+    }
+
     // wave cleared
-    if (aliveCount === 0 && bots.current.length === 0) {
+    const defendDone = s.objective !== "defend" || s.objectiveTimeLeft <= 0;
+    if (aliveCount === 0 && bots.current.length === 0 && defendDone) {
       waveDelay.current += dt;
       if (waveDelay.current > 2.5) {
         waveDelay.current = 0;
-        if (s.wave >= MAX_WAVE) {
-          s.finish("victory");
+        const st = useGameStore.getState();
+        // wave-clear achievements
+        if (!st.tookDamageThisWave) st.unlockAch("untouchable");
+        if (s.wave % 3 === 0) st.unlockAch("nightowl");
+        if (s.wave >= MAX_WAVE && !s.endless) {
+          st.finish("victory");
           document.exitPointerLock?.();
         } else {
-          const st = useGameStore.getState();
           st.set({
             score: st.score + 250,
             health: Math.min(st.maxHealth, st.health + 30),
+            grenades: Math.min(5, st.grenades + 1),
             ammo: {
               ar: { mag: 30, reserve: Math.min(240, st.ammo.ar.reserve + 60) },
               smg: { mag: 40, reserve: Math.min(300, st.ammo.smg.reserve + 80) },
               sg: { mag: 6, reserve: Math.min(48, st.ammo.sg.reserve + 12) },
+              sn: { mag: 5, reserve: Math.min(40, st.ammo.sn.reserve + 8) },
             },
           });
           // offer a perk before the next wave
@@ -462,7 +635,11 @@ export default function Enemies() {
       {renderIds.map((id) => {
         const b = byId.get(id);
         if (!b) return null;
-        return <SoldierMesh key={id} bot={b} refs={groups.current} />;
+        return b.kind === "drone" ? (
+          <DroneMesh key={id} bot={b} refs={groups.current} />
+        ) : (
+          <SoldierMesh key={id} bot={b} refs={groups.current} />
+        );
       })}
     </group>
   );

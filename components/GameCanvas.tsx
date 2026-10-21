@@ -6,6 +6,9 @@ import Player from "./Player";
 import Enemies from "./Enemies";
 import Effects from "./Effects";
 import Barrels from "./Barrels";
+import Zone from "./Zone";
+import Grenades from "./Grenades";
+import SupplyDrop from "./SupplyDrop";
 import { playerState } from "@/lib/game";
 import { useGameStore } from "@/lib/store";
 
@@ -102,7 +105,10 @@ export default function GameCanvas() {
           <ResetOnStart />
           <World />
           <Barrels />
+          <Zone />
+          <SupplyDrop />
           <Player />
+          <Grenades />
           <Enemies />
           <Effects />
         </Suspense>

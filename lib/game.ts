@@ -79,7 +79,24 @@ export function triggerSlowMo(ms = 850) {
 }
 
 // ---- enemy registry for hitscan ----
-export type EnemyKind = "soldier" | "runner" | "heavy" | "exploder" | "boss";
+export type EnemyKind = "soldier" | "runner" | "heavy" | "exploder" | "boss" | "drone";
+
+/** Mesh scale per kind (hit spheres scale with it). */
+export const KIND_SCALE: Record<EnemyKind, number> = {
+  soldier: 1,
+  runner: 0.94,
+  heavy: 1.35,
+  exploder: 0.95,
+  boss: 1.9,
+  drone: 1,
+};
+
+/** Hitscan profile per kind: heights above feet + sphere radii. */
+export function hitProfile(kind: EnemyKind): { chestY: number; headY: number; chestR: number; headR: number } {
+  if (kind === "drone") return { chestY: 3.35, headY: 3.35, chestR: 0.55, headR: 0.34 };
+  const f = KIND_SCALE[kind];
+  return { chestY: 1.15 * f, headY: 1.72 * f, chestR: 0.55 * f, headR: 0.32 * f };
+}
 
 export interface EnemyEntry {
   id: number;
@@ -190,6 +207,24 @@ export function pushImpact(pos: THREE.Vector3, blood = false, normal?: THREE.Vec
 export function pushExplosion(pos: THREE.Vector3, radius: number) {
   explosionQueue.push({ id: fxId++, pos: pos.clone(), radius });
   if (explosionQueue.length > 10) explosionQueue.shift();
+}
+
+// ---- player grenades (physics stepped by components/Grenades.tsx) ----
+export interface LiveGrenade {
+  pos: THREE.Vector3;
+  vel: THREE.Vector3;
+  fuse: number;
+}
+export const liveGrenades: LiveGrenade[] = [];
+
+export function spawnGrenade() {
+  const origin = new THREE.Vector3().copy(playerState.pos);
+  origin.y += 1.55;
+  const dir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(playerState.pitch, playerState.yaw, 0, "YXZ"));
+  const vel = dir.multiplyScalar(21);
+  vel.y += 4.5;
+  liveGrenades.push({ pos: origin.addScaledVector(dir, 0.4), vel, fuse: 1.6 });
+  if (liveGrenades.length > 6) liveGrenades.shift();
 }
 
 /**
