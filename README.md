@@ -13,6 +13,18 @@ npm run dev   # http://localhost:3000
 
 Production: `npm run build && npm start`. Desktop Chrome/Edge recommended (pointer lock aiming). Add `?lowfx` to the URL for a low-spec mode (shadows off) on weak GPUs.
 
+## Docker
+
+Every push to `main` publishes an image to GitHub Packages (GHCR):
+
+```bash
+docker pull ghcr.io/paras-pb/strikezonegame:latest
+docker run -p 3000:3000 ghcr.io/paras-pb/strikezonegame:latest
+# → http://localhost:3000
+```
+
+Or build it yourself from the repo root: `docker build -t strikezone .`
+
 
 ## V4 — FRONTIER
 
