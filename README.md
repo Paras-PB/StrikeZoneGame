@@ -53,6 +53,16 @@ Or build it yourself from the repo root: `docker build -t strikezone .`
 - **Stalker** (woods maps, wave 7+) — a ghillie-suited ambusher. Near-invisible while he holds still (16% opacity, flickers on the minimap); stray within 9 m or wound him and he rushes you at runner speed, fighting at shotgun range.
 - **2 new achievements** — TIMBER (down a Stalker) and AUTUMN OPERATOR (win a run on Autumn Ridge). 12 total.
 
+
+## V7 — PAUSE & SETTINGS
+
+- **Pause menu (Esc)** — releasing the mouse mid-run now pauses the game instead of just unlocking: the whole simulation freezes (enemies, grenades, rockets, the defend-the-zone timer, sentry/health-bag lifetimes, even airstrike and rocket-salvo timing). The pause menu shows your wave / kills / score with **Resume**, **Settings**, **Restart Run** and **Quit to Menu**.
+- **Settings** — on the main menu and inside the pause menu, saved automatically to your browser:
+  - **Mouse sensitivity** — ×0.3 to ×2.5 multiplier on look speed.
+  - **Master volume** — 0–100% for all synthesized SFX.
+  - **Invert Y** — flip vertical mouse aim.
+  - **Quality** — High, or Low (shadows off + resolution capped, the same treatment as `?lowfx` mode) for weaker GPUs.
+
 ## Controls
 
 | Input | Action |
@@ -66,6 +76,7 @@ Or build it yourself from the repo root: `docker build -t strikezone .`
 | R | Reload |
 | G | Throw frag grenade |
 | 1 / 2 / 3 / 4 | AR / SMG / Shotgun / Sniper |
+| ESC | Pause menu (V7) |
 
 ## What's in V3 — AIRBORNE
 

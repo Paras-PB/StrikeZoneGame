@@ -16,6 +16,7 @@ export default function Grenades() {
   const meshes = useRef<(THREE.Mesh | null)[]>([]);
 
   useFrame((_, rawDt) => {
+    if (useGameStore.getState().phase === "paused") return; // V7: frozen mid-flight
     const dt = Math.min(rawDt, 0.05) * timeState.scale;
     for (let i = liveGrenades.length - 1; i >= 0; i--) {
       const g = liveGrenades[i];

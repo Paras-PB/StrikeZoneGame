@@ -44,6 +44,10 @@ export default function SupplyDrop() {
     const g = group.current;
     if (!g) return;
 
+    // V7: while paused the drop freezes — falling timer, fall and pickup all
+    // hold (without this, the not-playing branch below would reset it).
+    if (s.phase === "paused") return;
+
     if (s.phase !== "playing" || s.wave < 2) {
       if (stateRef.current !== "idle") setState("idle");
       g.visible = false;

@@ -19,6 +19,7 @@ export default function Rockets() {
   const tmp = useRef({ desired: new THREE.Vector3(), targetPos: new THREE.Vector3() });
 
   useFrame((_, rawDt) => {
+    if (useGameStore.getState().phase === "paused") return; // V7: rockets + salvo rings frozen
     const dt = Math.min(rawDt, 0.05) * timeState.scale;
 
     for (let i = liveRockets.length - 1; i >= 0; i--) {

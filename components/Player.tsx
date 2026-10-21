@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { WEAPONS, useGameStore } from "@/lib/store";
-import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo, hitProfile, spawnGrenade, turretState, deployTurret, callAirstrike, lockState, resetLock, spawnRocket, bagState, deployBag } from "@/lib/game";
+import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo, hitProfile, spawnGrenade, turretState, deployTurret, callAirstrike, lockState, resetLock, spawnRocket, bagState, deployBag, shiftPauseDeadlines, resetPauseShift } from "@/lib/game";
 import type { EnemyKind } from "@/lib/game";
 import type { BarrelEntry } from "@/lib/game";
 import { sfxShoot, sfxReload, sfxEmpty, sfxHit, sfxHeadshot, sfxStep, sfxLock } from "@/lib/audio";
@@ -134,14 +134,28 @@ export default function Player() {
       if (useGameStore.getState().phase !== "playing") return;
       const gs = useGameStore.getState();
       const ads = gs.ads;
-      const sens = ads && gs.activeWeapon === "sn" ? 0.00045 : ads ? 0.0011 : 0.0021;
+      const sens = (ads && gs.activeWeapon === "sn" ? 0.00045 : ads ? 0.0011 : 0.0021) * gs.settings.sensitivity;
       playerState.yaw -= e.movementX * sens;
-      playerState.pitch -= e.movementY * sens;
+      playerState.pitch -= e.movementY * sens * (gs.settings.invertY ? -1 : 1);
       playerState.pitch = Math.max(-1.45, Math.min(1.45, playerState.pitch));
     };
     window.addEventListener("mousemove", move);
     return () => window.removeEventListener("mousemove", move);
   }, [gl]);
+
+  // V7 pause: releasing pointer lock mid-run (Esc) opens the pause menu.
+  // Deliberate exits (perk / dead / victory) set their phase BEFORE calling
+  // exitPointerLock, and this handler re-checks the phase when the event
+  // actually fires, so those transitions never trip the pause.
+  useEffect(() => {
+    const onLockChange = () => {
+      if (!document.pointerLockElement && useGameStore.getState().phase === "playing") {
+        useGameStore.getState().set({ phase: "paused" });
+      }
+    };
+    document.addEventListener("pointerlockchange", onLockChange);
+    return () => document.removeEventListener("pointerlockchange", onLockChange);
+  }, []);
 
   function startReload() {
     const s = useGameStore.getState();
@@ -368,6 +382,17 @@ export default function Player() {
   useFrame((state, rawDt) => {
     const dt = Math.min(rawDt, 0.05) * timeState.scale;
     const s = useGameStore.getState();
+    if (s.phase === "paused") {
+      // frozen: no movement, regen, lock-on or firing. Wall-clock deadlines
+      // (turret/bag/airstrike/salvo/overdrive) are pushed forward so a pause
+      // of any length expires nothing, and the hurt timestamp moves with it
+      // so the post-damage regen grace period doesn't elapse either.
+      playerState.firingHeld = false;
+      shiftPauseDeadlines();
+      if (lastDamageT.current > 0) lastDamageT.current += Math.min(rawDt, 0.05);
+      return;
+    }
+    resetPauseShift();
     if (s.phase !== "playing") {
       playerState.firingHeld = false;
       return;
