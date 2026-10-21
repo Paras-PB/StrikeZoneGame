@@ -68,6 +68,32 @@ export function collideCircle(
   return { groundedOn };
 }
 
+// ---- V7 pause: freeze wall-clock deadlines ----
+// Several systems schedule with performance.now() / Date.now() instead of
+// frame dt (turret + health-bag expiry, airstrike timing, gunship salvo
+// marks, overdrive). While paused, Player's loop calls this once per frame
+// and every pending deadline is pushed forward by the real time elapsed
+// since the previous call, so a pause of any length expires nothing.
+let lastPauseShiftAt: number | null = null;
+export function shiftPauseDeadlines() {
+  const now = performance.now();
+  if (lastPauseShiftAt === null) {
+    lastPauseShiftAt = now;
+    return;
+  }
+  const d = now - lastPauseShiftAt;
+  lastPauseShiftAt = now;
+  if (d <= 0) return;
+  if (turretState) turretState.until += d;
+  if (bagState) bagState.until += d;
+  for (const m of rocketMarks) m.at += d;
+  const st = useGameStore.getState();
+  if (st.overdriveUntil > Date.now()) st.set({ overdriveUntil: st.overdriveUntil + d });
+}
+export function resetPauseShift() {
+  lastPauseShiftAt = null;
+}
+
 // ---- slow-motion (final-kill effect) ----
 export const timeState = { scale: 1 };
 let slowMoTimer: ReturnType<typeof setTimeout> | null = null;

@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { airstrikeState, clearAirstrike, explodeAt, timeState } from "@/lib/game";
+import type { AirstrikeState } from "@/lib/game";
 import { useGameStore } from "@/lib/store";
 
 const BOMBS = 6;
@@ -17,19 +18,40 @@ export default function Airstrike() {
   const [strike, setStrike] = useState<{ x: number; z: number; at: number } | null>(null);
   const progress = useRef({ at: 0, bombs: 0, nextAt: 0 });
   const ring = useRef<THREE.Mesh>(null);
+  // the strike object we're tracking — identity, not timestamp, because the
+  // pause freeze below legitimately shifts startedAt forward (V7)
+  const srcRef = useRef<AirstrikeState | null>(null);
+  const lastTick = useRef(0);
 
   useFrame((state) => {
     void state;
     void timeState;
     const as = airstrikeState;
-    if (as && (!strike || strike.at !== as.startedAt)) {
+    const nowReal = performance.now();
+    const prevTick = lastTick.current;
+    lastTick.current = nowReal;
+
+    if (useGameStore.getState().phase === "paused") {
+      // freeze the schedule: push the strike clock forward with real time so
+      // no bombs land (and none are skipped) while the pause menu is up
+      const d = prevTick ? nowReal - prevTick : 0;
+      if (d > 0 && as) {
+        as.startedAt += d;
+        progress.current.at += d;
+        progress.current.nextAt += d;
+      }
+      return;
+    }
+
+    if (!as) srcRef.current = null;
+    if (as && srcRef.current !== as) {
+      srcRef.current = as;
       setStrike({ x: as.x, z: as.z, at: as.startedAt });
       progress.current = { at: as.startedAt, bombs: 0, nextAt: as.startedAt + MARK_MS };
     }
     if (!strike) return;
     const now = performance.now();
     const p = progress.current;
-    if (p.at !== strike.at) return;
 
     if (ring.current) {
       const pulse = 1 + Math.sin(now * 0.02) * 0.05;

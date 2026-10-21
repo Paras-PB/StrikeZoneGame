@@ -3,6 +3,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { tracerQueue, impactQueue, explosionQueue, timeState } from "@/lib/game";
+import { useGameStore } from "@/lib/store";
 
 interface Tracer {
   mesh: THREE.Mesh;
@@ -46,6 +47,7 @@ export default function Effects() {
   const matBlood = useMemo(() => new THREE.MeshBasicMaterial({ color: "#a31616", transparent: true, depthWrite: false }), []);
 
   useFrame((_, rawDt) => {
+    if (useGameStore.getState().phase === "paused") return; // V7: FX lifetimes frozen
     const dt = Math.min(rawDt, 0.05) * timeState.scale;
     if (!group.current) return;
     // spawn tracers

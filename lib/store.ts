@@ -1,8 +1,9 @@
 import { create } from "zustand";
+import { setMasterVolume } from "@/lib/audio";
 
 export type WeaponId = "ar" | "smg" | "sg" | "sn" | "saw" | "stinger";
 export type MapId = "arena" | "forest" | "autumn";
-export type Phase = "menu" | "playing" | "perk" | "dead" | "victory";
+export type Phase = "menu" | "playing" | "perk" | "dead" | "victory" | "paused";
 
 export interface WeaponDef {
   id: WeaponId;
@@ -193,6 +194,38 @@ function save(key: string, value: string) {
   }
 }
 
+// ---- V7: settings (persistent, one localStorage key) ----
+export interface Settings {
+  sensitivity: number; // mouse-look multiplier 0.3–2.5
+  volume: number; // master volume 0–100 (50 == the old hardcoded 0.5 gain)
+  invertY: boolean;
+  quality: "high" | "low";
+}
+export const DEFAULT_SETTINGS: Settings = { sensitivity: 1, volume: 50, invertY: false, quality: "high" };
+const SETTINGS_KEY = "strikezone-settings";
+
+function loadSettings(): Settings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    const p = JSON.parse(raw) as Partial<Settings>;
+    return {
+      sensitivity:
+        typeof p.sensitivity === "number" && Number.isFinite(p.sensitivity)
+          ? Math.max(0.3, Math.min(2.5, p.sensitivity))
+          : DEFAULT_SETTINGS.sensitivity,
+      volume:
+        typeof p.volume === "number" && Number.isFinite(p.volume)
+          ? Math.max(0, Math.min(100, p.volume))
+          : DEFAULT_SETTINGS.volume,
+      invertY: typeof p.invertY === "boolean" ? p.invertY : DEFAULT_SETTINGS.invertY,
+      quality: p.quality === "low" || p.quality === "high" ? p.quality : DEFAULT_SETTINGS.quality,
+    };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
 interface GameState {
   phase: Phase;
   health: number;
@@ -263,6 +296,9 @@ interface GameState {
   achToast: { id: string; name: string; icon: string; at: number } | null;
   barrelKills: number;
   tookDamageThisWave: boolean;
+  // V7: settings
+  settings: Settings;
+  setSettings: (p: Partial<Settings>) => void;
   startGame: () => void;
   finish: (phase: "dead" | "victory") => void;
   unlockAch: (id: AchId) => void;
@@ -333,6 +369,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   achToast: null,
   barrelKills: 0,
   tookDamageThisWave: false,
+  settings: typeof window !== "undefined" ? loadSettings() : { ...DEFAULT_SETTINGS },
+  setSettings: (p) =>
+    set((s) => {
+      const settings = { ...s.settings, ...p };
+      save(SETTINGS_KEY, JSON.stringify(settings));
+      setMasterVolume(settings.volume / 100);
+      return { settings };
+    }),
   startGame: () =>
     set({
       phase: "playing",
@@ -423,3 +467,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     })),
   resetAmmo: () => set({ ammo: fullAmmo() }),
 }));
+
+// apply the persisted volume even before the first SFX creates the context
+if (typeof window !== "undefined") setMasterVolume(useGameStore.getState().settings.volume / 100);

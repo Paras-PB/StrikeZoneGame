@@ -1,6 +1,14 @@
 // Synthesized WebAudio SFX — no assets needed
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
+// V7 settings: master volume 0..1 (0.5 == the old hardcoded gain). Stored at
+// module level so it applies even when set before the context exists.
+let volumeLevel = 0.5;
+
+export function setMasterVolume(v: number) {
+  volumeLevel = Math.max(0, Math.min(1, v));
+  if (master && ctx) master.gain.setValueAtTime(volumeLevel, ctx.currentTime);
+}
 
 function ac(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -8,7 +16,7 @@ function ac(): AudioContext | null {
     if (!ctx) {
       ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       master = ctx.createGain();
-      master.gain.value = 0.5;
+      master.gain.value = volumeLevel;
       master.connect(ctx.destination);
     }
     if (ctx.state === "suspended") ctx.resume();

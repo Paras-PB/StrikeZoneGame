@@ -52,6 +52,7 @@ function ResetOnStart() {
 
 export default function GameCanvas() {
   const [gpu, setGpu] = useState<GpuStatus>({ checked: false, ok: true, software: false, detail: "" });
+  const quality = useGameStore((s) => s.settings.quality);
 
   useEffect(() => {
     setGpu(checkWebGL());
@@ -83,13 +84,16 @@ export default function GameCanvas() {
     );
   }
 
-  const lowSpec = gpu.checked && (gpu.software || new URLSearchParams(window.location.search).has("lowfx"));
+  // V7: the Settings quality option joins the existing low-spec detection —
+  // Low (like ?lowfx / software GL) means shadows off + DPR capped at 1
+  const lowSpec =
+    gpu.checked && (gpu.software || quality === "low" || new URLSearchParams(window.location.search).has("lowfx"));
 
   return (
     <div className="absolute inset-0">
       {lowSpec && (
         <div className="absolute top-2 left-2 z-20 text-[11px] bg-black/60 border border-white/10 rounded px-2 py-1 text-white/70 pointer-events-none">
-          Software rendering — LOW FX mode (shadows off)
+          {gpu.software ? "Software rendering — LOW FX mode (shadows off)" : "LOW FX mode — quality set to Low (shadows off)"}
         </div>
       )}
       <Canvas

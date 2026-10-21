@@ -1,6 +1,7 @@
 "use client";
 import { useGameStore, ACH_DEFS, rankFor } from "@/lib/store";
 import type { AchId } from "@/lib/store";
+import SettingsPanel from "./SettingsPanel";
 
 export default function MainMenu() {
   const phase = useGameStore((s) => s.phase);
@@ -160,7 +161,7 @@ export default function MainMenu() {
                   ["X", "Call airstrike on your aim point (earn 1 per 25 kills)"],
                   ["6", "Weapon 6 — Stinger: RMB aim at drones/gunship to lock, then fire"],
                   ["H", "Deploy health bag — stand in its green ring to heal"],
-                  ["ESC", "Release the mouse"],
+                  ["ESC", "Pause — opens the pause menu (resume / settings / restart / quit)"],
                   ["CLICK", "Choose a perk card between waves"],
                 ].map(([k, action]) => (
                   <div key={k} className="flex items-center gap-2">
@@ -204,6 +205,13 @@ export default function MainMenu() {
           )}
         </div>
         {isVictory && <div className="mt-2 text-xs text-white/40">ENDLESS: waves keep scaling past 10 — how far can you get?</div>}
+
+        {phase === "menu" && (
+          <div className="mt-6 text-left bg-white/5 border border-white/10 rounded p-4">
+            <div className="font-bold text-orange-400 text-xs tracking-widest mb-3">⚙️ SETTINGS</div>
+            <SettingsPanel />
+          </div>
+        )}
 
         {phase === "menu" && (
           <div className="mt-6 text-left bg-white/5 border border-white/10 rounded p-4">
