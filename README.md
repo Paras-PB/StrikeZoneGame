@@ -22,6 +22,7 @@ Production: `npm run build && npm start`. Desktop Chrome/Edge recommended (point
 - **M249 SAW** (key 5) — belt-fed LMG: 100-round mag, 800 rpm, built for crowds.
 - **Tactical minimap** — live top-down map (top-left): red dots are hostiles moving in real time (magenta = Juggernaut, orange = Marksman), white arrow is you, plus zone ring, barrels, sentry and airstrike markers.
 - **Airstrike (X)** — every 25 kills earns one. Call it on your aim point: a red target ring marks the zone, then 6 shells land over ~1.6 s.
+- **Health bag (H)** — deployable first-aid station: heals 15 HP/s while you stand in its green ring, lasts 12 s. Start with 1, earn +1 every 3 waves (max 3). Drop it inside the defend zone.
 
 
 ## V5 — GUNSHIP

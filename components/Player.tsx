@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { WEAPONS, useGameStore } from "@/lib/store";
-import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo, hitProfile, spawnGrenade, turretState, deployTurret, callAirstrike, lockState, resetLock, spawnRocket } from "@/lib/game";
+import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo, hitProfile, spawnGrenade, turretState, deployTurret, callAirstrike, lockState, resetLock, spawnRocket, bagState, deployBag } from "@/lib/game";
 import type { EnemyKind } from "@/lib/game";
 import type { BarrelEntry } from "@/lib/game";
 import { sfxShoot, sfxReload, sfxEmpty, sfxHit, sfxHeadshot, sfxStep, sfxLock } from "@/lib/audio";
@@ -77,6 +77,11 @@ export default function Player() {
         deployTurret(playerState.pos.clone());
         s.set({ turrets: s.turrets - 1 });
         s.addKillfeed("🤖 SENTRY DEPLOYED — 45s");
+      }
+      if (e.code === "KeyH" && s.healthBags > 0 && !bagState) {
+        deployBag(playerState.pos.clone());
+        s.set({ healthBags: s.healthBags - 1 });
+        s.addKillfeed("✚ HEALTH BAG DEPLOYED — STAND IN THE RING");
       }
       if (e.code === "KeyX" && s.airstrikes > 0) {
         const dir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(playerState.pitch, playerState.yaw, 0, "YXZ"));

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { useGameStore } from "@/lib/store";
-import { enemyRegistry, playerState, barrelRegistry, turretState, airstrikeState, FOREST_TREES, FOREST_CABINS } from "@/lib/game";
+import { enemyRegistry, playerState, barrelRegistry, turretState, airstrikeState, bagState, FOREST_TREES, FOREST_CABINS } from "@/lib/game";
 
 const MM_SIZE = 148;
 const MM_WORLD = 120; // world spans -60..60
@@ -86,6 +86,16 @@ export default function Minimap() {
 
       // sentry turret
       if (turretState) dot(turretState.pos.x, turretState.pos.z, 2.6, "#39d0ff");
+
+      // health bag station
+      if (bagState) {
+        dot(bagState.pos.x, bagState.pos.z, 2.6, "#3dff7a");
+        g.beginPath();
+        g.arc(px(bagState.pos.x), pz(bagState.pos.z), (3.6 / MM_WORLD) * MM_SIZE, 0, Math.PI * 2);
+        g.strokeStyle = "rgba(61,255,122,0.5)";
+        g.lineWidth = 1;
+        g.stroke();
+      }
 
       // hostiles — red dots, live positions
       for (const e of enemyRegistry.values()) {

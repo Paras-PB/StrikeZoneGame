@@ -12,6 +12,7 @@ import SupplyDrop from "./SupplyDrop";
 import Turret from "./Turret";
 import Airstrike from "./Airstrike";
 import Rockets from "./Rockets";
+import HealthBag from "./HealthBag";
 import { playerState } from "@/lib/game";
 import { useGameStore } from "@/lib/store";
 
@@ -115,6 +116,7 @@ export default function GameCanvas() {
           <Turret />
           <Airstrike />
           <Rockets />
+          <HealthBag />
           <Enemies />
           <Effects />
         </Suspense>

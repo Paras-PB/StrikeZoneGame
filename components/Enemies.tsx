@@ -903,6 +903,7 @@ export default function Enemies() {
               stinger: { mag: 1, reserve: Math.min(10, st.ammo.stinger.reserve + 2) },
             },
             turrets: Math.min(2, st.turrets + (s.wave % 2 === 0 ? 1 : 0)),
+            healthBags: Math.min(3, st.healthBags + (s.wave % 3 === 0 ? 1 : 0)),
           });
           // offer a perk before the next wave
           const pool = [...PERK_POOL];

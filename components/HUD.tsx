@@ -31,6 +31,8 @@ export default function HUD() {
   const turrets = useGameStore((s) => s.turrets);
   const airstrikes = useGameStore((s) => s.airstrikes);
   const mapId = useGameStore((s) => s.mapId);
+  const healthBags = useGameStore((s) => s.healthBags);
+  const healingAura = useGameStore((s) => s.healingAura);
   const objective = useGameStore((s) => s.objective);
   const objectiveTimeLeft = useGameStore((s) => s.objectiveTimeLeft);
   const playerInZone = useGameStore((s) => s.playerInZone);
@@ -201,7 +203,7 @@ export default function HUD() {
       {/* bottom left: health */}
       <div className="absolute bottom-6 left-6 w-72">
         <div className="flex justify-between text-[11px] font-bold tracking-widest text-white/70 mb-1">
-          <span>HEALTH {sliding ? "· SLIDING" : sprinting ? "· SPRINTING" : ""}</span>
+          <span>HEALTH {healingAura ? "· ✚ HEALING" : sliding ? "· SLIDING" : sprinting ? "· SPRINTING" : ""}</span>
           <span>{Math.ceil(health)}</span>
         </div>
         <div className="h-3 bg-white/10 rounded overflow-hidden border border-white/10">
@@ -232,6 +234,8 @@ export default function HUD() {
           <span className={turrets > 0 ? "text-cyan-300 font-bold" : ""}>🤖 F SENTRY ×{turrets}</span>
           {" · "}
           <span className={airstrikes > 0 ? "text-red-300 font-bold animate-pulse" : ""}>✈ X AIRSTRIKE ×{airstrikes}</span>
+          {" · "}
+          <span className={healthBags > 0 ? "text-green-300 font-bold" : ""}>✚ H MEDKIT ×{healthBags}</span>
           {overdrive && <span className="text-amber-300 font-bold"> · ⚡2× DMG</span>}
         </div>
       </div>
