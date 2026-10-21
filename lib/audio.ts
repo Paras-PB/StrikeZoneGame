@@ -134,6 +134,71 @@ export function sfxEmpty() {
   o.stop(c.currentTime + 0.05);
 }
 
+export function sfxHeadshot() {
+  const c = ac();
+  if (!c || !master) return;
+  const t = c.currentTime;
+  [1900, 1250].forEach((f, i) => {
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(f, t + i * 0.045);
+    o.frequency.exponentialRampToValueAtTime(f * 0.6, t + i * 0.045 + 0.06);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.28, t + i * 0.045);
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.045 + 0.07);
+    o.connect(g).connect(master!);
+    o.start(t + i * 0.045);
+    o.stop(t + i * 0.045 + 0.08);
+  });
+}
+
+export function sfxExplosion() {
+  const c = ac();
+  if (!c || !master) return;
+  const t = c.currentTime;
+  // boom body — filtered noise burst
+  const n = c.createBufferSource();
+  n.buffer = noiseBuffer(c, 0.55);
+  const nf = c.createBiquadFilter();
+  nf.type = "lowpass";
+  nf.frequency.setValueAtTime(900, t);
+  nf.frequency.exponentialRampToValueAtTime(90, t + 0.5);
+  const ng = c.createGain();
+  ng.gain.setValueAtTime(0.95, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+  n.connect(nf).connect(ng).connect(master);
+  n.start(t);
+  n.stop(t + 0.56);
+  // sub thump
+  const o = c.createOscillator();
+  o.type = "sine";
+  o.frequency.setValueAtTime(130, t);
+  o.frequency.exponentialRampToValueAtTime(28, t + 0.45);
+  const og = c.createGain();
+  og.gain.setValueAtTime(0.9, t);
+  og.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+  o.connect(og).connect(master);
+  o.start(t);
+  o.stop(t + 0.51);
+}
+
+export function sfxPerk() {
+  const c = ac();
+  if (!c || !master) return;
+  const t = c.currentTime;
+  [660, 880, 1320].forEach((f, i) => {
+    const o = c.createOscillator();
+    o.type = "triangle";
+    o.frequency.value = f;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.16, t + i * 0.07);
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.07 + 0.12);
+    o.connect(g).connect(master!);
+    o.start(t + i * 0.07);
+    o.stop(t + i * 0.07 + 0.13);
+  });
+}
+
 export function sfxStep(sprint: boolean) {
   const c = ac();
   if (!c || !master) return;

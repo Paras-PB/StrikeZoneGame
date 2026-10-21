@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import MainMenu from "@/components/MainMenu";
 import HUD from "@/components/HUD";
+import PerkDraft from "@/components/PerkDraft";
 import { useGameStore } from "@/lib/store";
 
 const GameCanvas = dynamic(() => import("@/components/GameCanvas"), { ssr: false });
@@ -17,9 +18,10 @@ export default function Page() {
     <main onClick={onClick} className="relative w-screen h-screen overflow-hidden bg-black text-white">
       <GameCanvas />
       {(phase === "menu" || phase === "dead" || phase === "victory") && <MainMenu />}
-      {(phase === "playing" || phase === "dead") && <HUD />}
+      {phase === "perk" && <PerkDraft />}
+      {(phase === "playing" || phase === "perk" || phase === "dead") && <HUD />}
       <div className="absolute bottom-2 right-3 text-[11px] text-white/40 pointer-events-none">
-        WASD move · SHIFT sprint · SPACE jump · C slide · RMB aim · LMB shoot · R reload · 1/2 weapons
+        WASD move · SHIFT sprint · SPACE jump · C slide · RMB aim · LMB shoot · R reload · 1/2/3 weapons · shoot red barrels 💥
       </div>
     </main>
   );

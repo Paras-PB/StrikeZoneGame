@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { Sky, ContactShadows } from "@react-three/drei";
+import { Sky, ContactShadows, Stars } from "@react-three/drei";
 import { addCollider, clearColliders } from "@/lib/game";
+import { useGameStore } from "@/lib/store";
 
 function makeGroundTexture() {
   const c = document.createElement("canvas");
@@ -232,6 +233,8 @@ function Floodlight({ position }: { position: [number, number, number] }) {
 
 export default function World() {
   const groundTex = useMemo(() => (typeof document !== "undefined" ? makeGroundTexture() : null), []);
+  const wave = useGameStore((s) => s.wave);
+  const night = wave > 0 && wave % 3 === 0;
 
   useEffect(() => {
     clearColliders();
@@ -271,13 +274,14 @@ export default function World() {
 
   return (
     <group>
-      <Sky distance={4000} sunPosition={[80, 28, -120]} turbidity={6} rayleigh={2.2} />
-      <fog attach="fog" args={["#c8b08a", 55, 220]} />
-      <hemisphereLight args={["#bfd6ff", "#7a6a4f", 0.75]} />
+      <Sky distance={4000} sunPosition={night ? [-60, 4, -100] : [80, 28, -120]} turbidity={night ? 2 : 6} rayleigh={night ? 0.6 : 2.2} />
+      {night && <Stars radius={220} depth={60} count={3000} factor={5} saturation={0} fade speed={0.6} />}
+      <fog attach="fog" args={night ? ["#131b2a", 22, 125] : ["#c8b08a", 55, 220]} />
+      <hemisphereLight args={night ? ["#5a6f9e", "#14120e", 0.22] : ["#bfd6ff", "#7a6a4f", 0.75]} />
       <directionalLight
-        position={[50, 60, -30]}
-        intensity={2.2}
-        color="#fff1d6"
+        position={night ? [-40, 55, -25] : [50, 60, -30]}
+        intensity={night ? 0.4 : 2.2}
+        color={night ? "#aebfff" : "#fff1d6"}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-70}
@@ -351,11 +355,8 @@ export default function World() {
       <Crate position={[-4, 0, 16]} rotation={0.7} />
       <Crate position={[26, 0, 8]} rotation={0.3} />
 
-      <Barrel position={[1, 0, -3]} />
       <Barrel position={[1.9, 0, -2.6]} color="#3a6ea5" />
-      <Barrel position={[-11, 0, -21]} />
       <Barrel position={[17, 0, 13]} color="#4a4e55" />
-      <Barrel position={[24, 0, 10]} />
       <Barrel position={[24.9, 0, 10.2]} color="#2e7d4f" />
 
       <Sandbags position={[0, 0, 10]} />

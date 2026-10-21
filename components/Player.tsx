@@ -3,8 +3,9 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { WEAPONS, useGameStore } from "@/lib/store";
-import { colliders, collideCircle, enemyRegistry, playerState, pushTracer, pushImpact } from "@/lib/game";
-import { sfxShoot, sfxReload, sfxEmpty, sfxHit, sfxStep } from "@/lib/audio";
+import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, playerState, pushTracer, pushImpact, timeState, triggerSlowMo } from "@/lib/game";
+import type { BarrelEntry } from "@/lib/game";
+import { sfxShoot, sfxReload, sfxEmpty, sfxHit, sfxHeadshot, sfxStep } from "@/lib/audio";
 import WeaponModel from "./WeaponModel";
 
 const keys = new Set<string>();
@@ -57,6 +58,9 @@ export default function Player() {
 
   // input listeners
   useEffect(() => {
+    playerState.lastHurt = () => {
+      lastDamageT.current = performance.now() / 1000;
+    };
     const down = (e: KeyboardEvent) => {
       keys.add(e.code);
       const s = useGameStore.getState();
@@ -64,6 +68,7 @@ export default function Player() {
       if (e.code === "KeyR") startReload();
       if (e.code === "Digit1") s.set({ activeWeapon: "ar", reloading: false });
       if (e.code === "Digit2") s.set({ activeWeapon: "smg", reloading: false });
+      if (e.code === "Digit3") s.set({ activeWeapon: "sg", reloading: false });
       if (e.code === "Space") e.preventDefault();
     };
     const up = (e: KeyboardEvent) => keys.delete(e.code);
@@ -71,11 +76,11 @@ export default function Player() {
       const s = useGameStore.getState();
       if (s.phase !== "playing") return;
       if (document.pointerLockElement !== gl.domElement) return;
-      if (e.button === 0) (firing as any).held = true;
+      if (e.button === 0) playerState.firingHeld = true;
       if (e.button === 2) s.set({ ads: true });
     };
     const mouseUp = (e: MouseEvent) => {
-      if (e.button === 0) (firing as any).held = false;
+      if (e.button === 0) playerState.firingHeld = false;
       if (e.button === 2) useGameStore.getState().set({ ads: false });
     };
     const ctx = (e: Event) => e.preventDefault();
@@ -108,16 +113,40 @@ export default function Player() {
     return () => window.removeEventListener("mousemove", move);
   }, [gl]);
 
-  const firing: { held: boolean } = useMemo(() => ({ held: false }), []);
-
   function startReload() {
     const s = useGameStore.getState();
     const w = WEAPONS[s.activeWeapon];
     const a = s.ammo[s.activeWeapon];
     if (s.reloading || a.mag === w.mag || a.reserve === 0) return;
     s.set({ reloading: true });
-    reloadT.current = w.reloadTime;
+    reloadT.current = w.reloadTime * s.reloadMult;
     sfxReload();
+  }
+
+  function registerKill(head: boolean, base: number, label: string) {
+    const st = useGameStore.getState();
+    const now = Date.now();
+    const combo = now - st.lastKillAt < 3500 ? st.combo + 1 : 1;
+    const mult = Math.min(combo, 5);
+    const pts = base * mult;
+    st.set({
+      kills: st.kills + 1,
+      score: st.score + pts,
+      combo,
+      lastKillAt: now,
+      hitmarker: now,
+      hitmarkerKill: true,
+      headshots: st.headshots + (head ? 1 : 0),
+    });
+    st.addKillfeed(`${label} +${pts}${mult > 1 ? ` (COMBO x${mult})` : ""}`);
+    if (combo === 2) st.addKillfeed("DOUBLE KILL");
+    else if (combo === 3) st.addKillfeed("TRIPLE KILL");
+    else if (combo === 4) st.addKillfeed("QUAD KILL");
+    else if (combo >= 5) st.addKillfeed(`RAMPAGE x${combo}`);
+    sfxHit(true);
+    if (head) sfxHeadshot();
+    // final kill of the wave -> brief slow-mo
+    if (st.enemiesLeft <= 1) triggerSlowMo();
   }
 
   function shoot(dt: number) {
@@ -138,7 +167,7 @@ export default function Player() {
       }
       return;
     }
-    if (!(firing as any).held) return;
+    if (!playerState.firingHeld) return;
     if (fireCooldown.current > 0) return;
     const ammoNow = s.ammo[s.activeWeapon];
     if (ammoNow.mag <= 0) {
@@ -149,98 +178,134 @@ export default function Player() {
     }
     fireCooldown.current = 60 / w.rpm;
 
-    // consume ammo
+    // consume ammo — one shell per trigger pull, even for the shotgun
     const a = { ...s.ammo };
     a[s.activeWeapon] = { mag: ammoNow.mag - 1, reserve: ammoNow.reserve };
-    s.set({ ammo: a });
-
-    // direction with spread
-    const spread = s.ads ? w.spreadAds : w.spreadHip + (s.sprinting ? 0.02 : 0) + vel.current.length() * 0.0015;
-    const dir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(playerState.pitch, playerState.yaw, 0, "YXZ"));
-    dir.x += (Math.random() - 0.5) * spread * 2;
-    dir.y += (Math.random() - 0.5) * spread * 2;
-    dir.z += (Math.random() - 0.5) * spread * 2;
-    dir.normalize();
+    s.set({ ammo: a, shots: s.shots + 1 });
 
     const origin = new THREE.Vector3().copy(playerState.pos);
     origin.y += s.ads ? 1.55 : 1.6;
+    const baseSpread = s.ads ? w.spreadAds : w.spreadHip + (s.sprinting ? 0.02 : 0) + vel.current.length() * 0.0015;
 
-    // wall distance
-    let wallDist = w.range;
-    for (const c of colliders) {
-      const t = rayVsAABB(origin, dir, c.min, c.max);
-      if (t !== null && t < wallDist) wallDist = t;
-    }
-    const tg = rayVsGround(origin, dir);
-    if (tg !== null && tg < wallDist) wallDist = tg;
-
-    // enemy test: body capsule approx as sphere at chest + head sphere
-    let bestT = wallDist;
-    let bestEnemy: number | null = null;
-    let bestHead = false;
-    for (const [id, e] of enemyRegistry) {
-      if (!e.alive) continue;
-      const chest = new THREE.Vector3(e.pos.x, e.pos.y + 1.15, e.pos.z);
-      const head = new THREE.Vector3(e.pos.x, e.pos.y + 1.72, e.pos.z);
-      // ray-sphere
-      for (const [c, r, isHead] of [[chest, 0.55, false], [head, 0.32, true]] as const) {
-        const oc = new THREE.Vector3().subVectors(c, origin);
-        const tca = oc.dot(dir);
-        if (tca < 0 || tca > bestT) continue;
-        const d2 = oc.lengthSq() - tca * tca;
-        if (d2 < r * r) {
-          const thc = Math.sqrt(r * r - d2);
-          const t = tca - thc;
-          if (t > 0 && t < bestT) {
-            bestT = t;
-            bestEnemy = id;
-            bestHead = isHead;
-          }
-        }
-      }
-    }
-
-    const end = origin.clone().addScaledVector(dir, bestT);
-    const muzzlePos = origin.clone().addScaledVector(dir, 0.7);
-    muzzlePos.y -= 0.12;
-    pushTracer(muzzlePos, end, false);
-
-    // recoil + flash
-    recoil.current = Math.min(0.06, recoil.current + (s.ads ? 0.012 : 0.02));
-    playerState.pitch += s.ads ? 0.0035 : 0.007;
+    // recoil + flash + sound, once per pull
+    recoil.current = Math.min(0.09, recoil.current + (w.pellets ? 0.05 : s.ads ? 0.012 : 0.02));
+    playerState.pitch += w.pellets ? 0.016 : s.ads ? 0.0035 : 0.007;
     muzzleFlash.current = 1;
     sfxShoot(false, s.ads);
 
-    if (bestEnemy !== null) {
-      const e = enemyRegistry.get(bestEnemy)!;
-      const falloff = Math.max(0.5, 1 - bestT / (w.range * 1.6));
-      let dmg = w.damage * falloff * (bestHead ? w.headMult : 1);
-      e.health -= dmg;
-      pushImpact(end, true);
-      const st = useGameStore.getState();
-      const killed = e.health <= 0 && e.alive;
-      if (killed) {
-        e.alive = false;
-        st.set({ kills: st.kills + 1, score: st.score + (bestHead ? 150 : 100) });
-        st.set({ hitmarker: Date.now(), hitmarkerKill: true });
-        st.addKillfeed(`${bestHead ? "HEADSHOT" : "ELIMINATED"} Hostile +${bestHead ? 150 : 100}`);
-      } else {
-        st.set({ hitmarker: Date.now(), hitmarkerKill: false });
+    let anyHit = false;
+    let hitSoundPlayed = false;
+    const pellets = w.pellets ?? 1;
+
+    for (let p = 0; p < pellets; p++) {
+      const dir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(playerState.pitch, playerState.yaw, 0, "YXZ"));
+      dir.x += (Math.random() - 0.5) * baseSpread * 2;
+      dir.y += (Math.random() - 0.5) * baseSpread * 2;
+      dir.z += (Math.random() - 0.5) * baseSpread * 2;
+      dir.normalize();
+
+      // wall distance
+      let wallDist = w.range;
+      for (const c of colliders) {
+        const t = rayVsAABB(origin, dir, c.min, c.max);
+        if (t !== null && t < wallDist) wallDist = t;
       }
-      sfxHit(killed);
-    } else if (bestT < wallDist + 0.001 && bestT < w.range) {
-      // wall hit already at wallDist; impact at end
-      pushImpact(end, false);
-    } else if (wallDist < w.range) {
-      pushImpact(end, false);
+      const tg = rayVsGround(origin, dir);
+      if (tg !== null && tg < wallDist) wallDist = tg;
+
+      // enemy test: body capsule approx as sphere at chest + head sphere
+      let bestT = wallDist;
+      let bestEnemy: number | null = null;
+      let bestHead = false;
+      let bestBarrel: BarrelEntry | null = null;
+      for (const [id, e] of enemyRegistry) {
+        if (!e.alive) continue;
+        const sizeF = e.kind === "boss" ? 1.9 : e.kind === "heavy" ? 1.35 : 1;
+        const chest = new THREE.Vector3(e.pos.x, e.pos.y + 1.15 * sizeF, e.pos.z);
+        const head = new THREE.Vector3(e.pos.x, e.pos.y + 1.72 * sizeF, e.pos.z);
+        for (const [cc, r, isHead] of [[chest, 0.55 * sizeF, false], [head, 0.32 * sizeF, true]] as const) {
+          const oc = new THREE.Vector3().subVectors(cc, origin);
+          const tca = oc.dot(dir);
+          if (tca < 0 || tca > bestT) continue;
+          const d2 = oc.lengthSq() - tca * tca;
+          if (d2 < r * r) {
+            const thc = Math.sqrt(r * r - d2);
+            const t = tca - thc;
+            if (t > 0 && t < bestT) {
+              bestT = t;
+              bestEnemy = id;
+              bestHead = isHead;
+              bestBarrel = null;
+            }
+          }
+        }
+      }
+      // explosive barrels
+      for (const b of barrelRegistry.values()) {
+        if (!b.alive) continue;
+        const oc = new THREE.Vector3().subVectors(b.pos, origin);
+        const tca = oc.dot(dir);
+        if (tca < 0 || tca > bestT) continue;
+        const d2 = oc.lengthSq() - tca * tca;
+        if (d2 < b.radius * b.radius) {
+          const thc = Math.sqrt(b.radius * b.radius - d2);
+          const t = tca - thc;
+          if (t > 0 && t < bestT) {
+            bestT = t;
+            bestBarrel = b;
+            bestEnemy = null;
+          }
+        }
+      }
+
+      const end = origin.clone().addScaledVector(dir, bestT);
+      const muzzlePos = origin.clone().addScaledVector(dir, 0.7);
+      muzzlePos.y -= 0.12;
+      pushTracer(muzzlePos, end, false);
+
+      if (bestEnemy !== null) {
+        const e = enemyRegistry.get(bestEnemy)!;
+        const falloff = Math.max(0.5, 1 - bestT / (w.range * 1.6));
+        const dmg = w.damage * falloff * (bestHead ? w.headMult : 1) * s.damageMult;
+        e.health -= dmg;
+        anyHit = true;
+        pushImpact(end, true);
+        if (e.health <= 0 && e.alive) {
+          e.alive = false;
+          registerKill(bestHead, bestHead ? 150 : 100, bestHead ? "HEADSHOT" : "ELIMINATED");
+        } else {
+          const st = useGameStore.getState();
+          st.set({ hitmarker: Date.now(), hitmarkerKill: false, lastHitDmg: Math.round(dmg), lastHitAt: Date.now() });
+          if (bestHead) sfxHeadshot();
+          if (!hitSoundPlayed) {
+            sfxHit(false);
+            hitSoundPlayed = true;
+          }
+        }
+      } else if (bestBarrel) {
+        anyHit = true;
+        bestBarrel.alive = false;
+        const killedList = explodeAt(bestBarrel.pos.clone(), 5.5, 140, 22);
+        if (killedList.length === 0) {
+          useGameStore.getState().addKillfeed("BARREL DETONATED");
+        }
+        for (const _k of killedList) registerKill(false, 100, "BARREL KILL");
+      } else if (wallDist < w.range) {
+        pushImpact(end, false);
+      }
+    }
+
+    if (anyHit) {
+      const st = useGameStore.getState();
+      st.set({ hits: st.hits + 1 });
     }
   }
 
   useFrame((state, rawDt) => {
-    const dt = Math.min(rawDt, 0.05);
+    const dt = Math.min(rawDt, 0.05) * timeState.scale;
     const s = useGameStore.getState();
     if (s.phase !== "playing") {
-      (firing as any).held = false;
+      playerState.firingHeld = false;
       return;
     }
 
@@ -249,12 +314,10 @@ export default function Player() {
 
     // health regen COD style
     const now = state.clock.elapsedTime;
-    if (now - lastDamageT.current > 3.5 && s.health < s.maxHealth) {
-      s.set({ health: Math.min(s.maxHealth, s.health + dt * 32) });
+    const perfNow = performance.now() / 1000;
+    if (perfNow - lastDamageT.current > 3.5 && s.health < s.maxHealth) {
+      s.set({ health: Math.min(s.maxHealth, s.health + dt * 32 * s.regenMult) });
     }
-    (playerState as any).lastHurt = (t: number) => {
-      lastDamageT.current = state.clock.elapsedTime;
-    };
 
     // movement input
     const fwd = (keys.has("KeyW") ? 1 : 0) - (keys.has("KeyS") ? 1 : 0);
@@ -290,6 +353,7 @@ export default function Player() {
     const ads = s.ads;
     let targetSpeed = ads ? 3.4 : 6.2;
     if (wantSprint) targetSpeed = 8.8;
+    targetSpeed *= s.moveMult;
 
     const sliding = slideTime.current > 0;
     const accel = onGround.current ? 46 : 12;

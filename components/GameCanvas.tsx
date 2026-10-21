@@ -5,6 +5,7 @@ import World from "./World";
 import Player from "./Player";
 import Enemies from "./Enemies";
 import Effects from "./Effects";
+import Barrels from "./Barrels";
 import { playerState } from "@/lib/game";
 import { useGameStore } from "@/lib/store";
 
@@ -100,6 +101,7 @@ export default function GameCanvas() {
         <Suspense fallback={null}>
           <ResetOnStart />
           <World />
+          <Barrels />
           <Player />
           <Enemies />
           <Effects />
