@@ -151,6 +151,7 @@ export default function MainMenu() {
                   ["F", "Deploy sentry turret — auto-fires for 45s"],
                   ["X", "Call airstrike on your aim point (earn 1 per 25 kills)"],
                   ["6", "Weapon 6 — Stinger: RMB aim at drones/gunship to lock, then fire"],
+                  ["H", "Deploy health bag — stand in its green ring to heal"],
                   ["ESC", "Release the mouse"],
                   ["CLICK", "Choose a perk card between waves"],
                 ].map(([k, action]) => (

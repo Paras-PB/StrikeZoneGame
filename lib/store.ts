@@ -242,6 +242,9 @@ interface GameState {
   // V5: boss kind + storm waves
   bossKind: "juggernaut" | "gunship" | null;
   storm: boolean;
+  // health bags (deployable healing station)
+  healthBags: number;
+  healingAura: boolean;
   // V3: objective waves
   objective: "elim" | "defend";
   objectiveTimeLeft: number;
@@ -313,6 +316,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   airstrikes: 0,
   bossKind: null,
   storm: false,
+  healthBags: 1,
+  healingAura: false,
   objective: "elim",
   objectiveTimeLeft: 0,
   zoneX: 0,
@@ -362,6 +367,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       airstrikes: 0,
       bossKind: null,
       storm: false,
+      healthBags: 1,
+      healingAura: false,
       objective: "elim",
       objectiveTimeLeft: 0,
       playerInZone: false,

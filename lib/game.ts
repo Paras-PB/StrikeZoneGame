@@ -407,3 +407,16 @@ export interface RocketMark {
   at: number; // performance.now() timestamp of impact
 }
 export const rocketMarks: RocketMark[] = [];
+
+// ---- health bag: deployable healing station (stepped by components/HealthBag.tsx) ----
+export interface BagState {
+  pos: THREE.Vector3;
+  until: number;
+}
+export let bagState: BagState | null = null;
+export function deployBag(pos: THREE.Vector3) {
+  bagState = { pos: pos.clone(), until: performance.now() + 12000 };
+}
+export function clearBag() {
+  bagState = null;
+}
