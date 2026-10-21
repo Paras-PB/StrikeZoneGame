@@ -18,6 +18,15 @@ export default function HUD() {
   const damageFlash = useGameStore((s) => s.damageFlash);
   const sprinting = useGameStore((s) => s.sprinting);
   const sliding = useGameStore((s) => s.sliding);
+  const combo = useGameStore((s) => s.combo);
+  const lastKillAt = useGameStore((s) => s.lastKillAt);
+  const lastHitDmg = useGameStore((s) => s.lastHitDmg);
+  const lastHitAt = useGameStore((s) => s.lastHitAt);
+  const bossHealth = useGameStore((s) => s.bossHealth);
+  const bossMax = useGameStore((s) => s.bossMax);
+  const night = wave > 0 && wave % 3 === 0;
+  const comboLive = combo >= 2 && Date.now() - lastKillAt < 3500;
+  const bossPct = bossMax > 0 ? Math.max(0, (bossHealth / bossMax) * 100) : 0;
 
   const w = WEAPONS[active];
   const a = ammo[active];
@@ -102,6 +111,36 @@ export default function HUD() {
         </div>
       </div>
 
+      {/* boss health bar */}
+      {bossMax > 0 && bossHealth > 0 && (
+        <div className="absolute top-[74px] left-1/2 -translate-x-1/2 w-[420px] max-w-[70vw]">
+          <div className="flex justify-between text-[10px] font-black tracking-[0.3em] text-red-400 mb-1">
+            <span>☠ JUGGERNAUT</span>
+            <span>{bossHealth}</span>
+          </div>
+          <div className="h-3 bg-white/10 rounded overflow-hidden border border-red-500/40">
+            <div className="h-full bg-gradient-to-r from-red-800 via-red-600 to-orange-500 transition-all" style={{ width: `${bossPct}%` }} />
+          </div>
+        </div>
+      )}
+
+      {/* combo + night badges */}
+      <div className="absolute top-[74px] left-4 flex flex-col gap-1 items-start">
+        {comboLive && (
+          <div className="bg-orange-600/80 px-3 py-1 rounded font-black tracking-widest text-sm animate-pulse">
+            COMBO ×{Math.min(combo, 5)} — {combo} CHAIN
+          </div>
+        )}
+        {night && <div className="bg-indigo-950/80 border border-indigo-400/30 px-3 py-1 rounded text-xs font-bold tracking-widest">🌙 NIGHT OPS</div>}
+      </div>
+
+      {/* floating damage number */}
+      {lastHitDmg > 0 && Date.now() - lastHitAt < 350 && (
+        <div className="absolute left-1/2 top-[56%] -translate-x-1/2 text-yellow-300 font-black text-lg" style={{ textShadow: "0 0 8px rgba(0,0,0,0.9)" }}>
+          -{lastHitDmg}
+        </div>
+      )}
+
       {/* killfeed */}
       <div className="absolute top-4 right-4 flex flex-col gap-1 items-end">
         {killfeed.map((k) => (
@@ -133,7 +172,8 @@ export default function HUD() {
         </div>
         <div className="mt-1 text-[11px] text-white/60">
           <span className={active === "ar" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>1 AR</span>{" "}
-          <span className={active === "smg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>2 SMG</span>
+          <span className={active === "smg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>2 SMG</span>{" "}
+          <span className={active === "sg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>3 SG</span>
         </div>
       </div>
 

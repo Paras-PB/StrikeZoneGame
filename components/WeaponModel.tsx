@@ -151,9 +151,13 @@ export default function WeaponModel({ flash }: { flash: MutableRefObject<number>
       </mesh>
       {active === "ar" ? (
         <Gun color="#2f3a44" accent="#d8452c" len={0.95} />
-      ) : (
+      ) : active === "smg" ? (
         <group scale={[0.85, 0.85, 0.7]}>
           <Gun color="#3a2f44" accent="#2cc8d8" len={0.6} />
+        </group>
+      ) : (
+        <group scale={[1.12, 1.05, 0.85]}>
+          <Gun color="#44402a" accent="#e08a1e" len={0.8} />
         </group>
       )}
       {/* muzzle flash star */}

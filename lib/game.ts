@@ -1,5 +1,7 @@
 // Shared mutable game runtime (no react re-render per frame)
 import * as THREE from "three";
+import { useGameStore } from "@/lib/store";
+import { sfxExplosion } from "@/lib/audio";
 
 export interface AABB {
   min: THREE.Vector3;
@@ -49,7 +51,7 @@ export function collideCircle(
         const dx0 = pos.x - ex0;
         const dx1 = ex1 - pos.x;
         const dz0 = pos.z - ez0;
-        const dz1 = ez1 - pos.z;
+        const dz1 = pos.z - ez1;
         const m = Math.min(dx0, dx1, dz0, dz1);
         if (m === dx0) pos.x = ex0;
         else if (m === dx1) pos.x = ex1;
@@ -65,7 +67,20 @@ export function collideCircle(
   return { groundedOn };
 }
 
+// ---- slow-motion (final-kill effect) ----
+export const timeState = { scale: 1 };
+let slowMoTimer: ReturnType<typeof setTimeout> | null = null;
+export function triggerSlowMo(ms = 850) {
+  timeState.scale = 0.3;
+  if (slowMoTimer) clearTimeout(slowMoTimer);
+  slowMoTimer = setTimeout(() => {
+    timeState.scale = 1;
+  }, ms);
+}
+
 // ---- enemy registry for hitscan ----
+export type EnemyKind = "soldier" | "runner" | "heavy" | "exploder" | "boss";
+
 export interface EnemyEntry {
   id: number;
   pos: THREE.Vector3; // feet position
@@ -74,11 +89,25 @@ export interface EnemyEntry {
   alive: boolean;
   speed: number;
   radius: number;
+  kind: EnemyKind;
 }
 
 export const enemyRegistry: Map<number, EnemyEntry> = new Map();
 
-export const playerState = {
+export interface PlayerState {
+  pos: THREE.Vector3;
+  vel: THREE.Vector3;
+  yaw: number;
+  pitch: number;
+  grounded: boolean;
+  sliding: boolean;
+  sprinting: boolean;
+  ads: boolean;
+  firingHeld: boolean;
+  lastHurt: ((t: number) => void) | null;
+}
+
+export const playerState: PlayerState = {
   pos: new THREE.Vector3(0, 0, 14),
   vel: new THREE.Vector3(),
   yaw: Math.PI, // face -z? adjusted in player
@@ -87,7 +116,39 @@ export const playerState = {
   sliding: false,
   sprinting: false,
   ads: false,
+  firingHeld: false,
+  lastHurt: null,
 };
+
+// ---- explosive barrels ----
+export interface BarrelDef {
+  id: number;
+  x: number;
+  z: number;
+}
+export const BARREL_DEFS: BarrelDef[] = [
+  { id: 1, x: 1, z: -3 },
+  { id: 2, x: -11, z: -21 },
+  { id: 3, x: 24, z: 10 },
+  { id: 4, x: -4, z: 17 },
+  { id: 5, x: 12, z: -12 },
+];
+
+export interface BarrelEntry {
+  id: number;
+  pos: THREE.Vector3; // center of the barrel
+  alive: boolean;
+  radius: number;
+}
+
+export const barrelRegistry: Map<number, BarrelEntry> = new Map();
+for (const d of BARREL_DEFS) {
+  barrelRegistry.set(d.id, { id: d.id, pos: new THREE.Vector3(d.x, 0.55, d.z), alive: true, radius: 0.62 });
+}
+
+export function resetBarrels() {
+  for (const b of barrelRegistry.values()) b.alive = true;
+}
 
 // ---- FX queues ----
 export interface TracerEvent {
@@ -103,13 +164,19 @@ export interface ImpactEvent {
   normal: THREE.Vector3;
   blood: boolean;
 }
+export interface ExplosionEvent {
+  id: number;
+  pos: THREE.Vector3;
+  radius: number;
+}
 let fxId = 1;
 export const tracerQueue: TracerEvent[] = [];
 export const impactQueue: ImpactEvent[] = [];
+export const explosionQueue: ExplosionEvent[] = [];
 
 export function pushTracer(from: THREE.Vector3, to: THREE.Vector3, enemy = false) {
   tracerQueue.push({ id: fxId++, from: from.clone(), to: to.clone(), enemy, idc: fxId });
-  if (tracerQueue.length > 40) tracerQueue.shift();
+  if (tracerQueue.length > 60) tracerQueue.shift();
 }
 export function pushImpact(pos: THREE.Vector3, blood = false, normal?: THREE.Vector3) {
   impactQueue.push({
@@ -119,4 +186,54 @@ export function pushImpact(pos: THREE.Vector3, blood = false, normal?: THREE.Vec
     blood,
   });
   if (impactQueue.length > 60) impactQueue.shift();
+}
+export function pushExplosion(pos: THREE.Vector3, radius: number) {
+  explosionQueue.push({ id: fxId++, pos: pos.clone(), radius });
+  if (explosionQueue.length > 10) explosionQueue.shift();
+}
+
+/**
+ * Radial explosion: damages every live enemy in range (registry health,
+ * Enemies.tsx turns that into deaths) and the player with distance falloff.
+ * Returns the registry entries this blast killed, so the shooter can be
+ * credited for barrel kills.
+ */
+export function explodeAt(
+  center: THREE.Vector3,
+  radius: number,
+  maxEnemyDmg: number,
+  maxPlayerDmg: number
+): EnemyEntry[] {
+  pushExplosion(center, radius);
+  sfxExplosion();
+  const killed: EnemyEntry[] = [];
+  for (const e of enemyRegistry.values()) {
+    if (!e.alive) continue;
+    const c = new THREE.Vector3(e.pos.x, e.pos.y + 1, e.pos.z);
+    const d = c.distanceTo(center);
+    if (d > radius + e.radius) continue;
+    const fall = Math.max(0.25, 1 - d / (radius + e.radius));
+    e.health -= maxEnemyDmg * fall;
+    if (e.health <= 0 && e.alive) {
+      e.alive = false;
+      killed.push(e);
+    }
+  }
+  // player damage
+  const pd = new THREE.Vector3(playerState.pos.x, playerState.pos.y + 1, playerState.pos.z).distanceTo(center);
+  if (pd < radius + 0.6 && maxPlayerDmg > 0) {
+    const fall = Math.max(0.2, 1 - pd / (radius + 0.6));
+    const st = useGameStore.getState();
+    if (st.phase === "playing") {
+      const hp = Math.max(0, st.health - maxPlayerDmg * fall);
+      st.set({ health: hp, damageFlash: Date.now() });
+      playerState.lastHurt?.(performance.now() / 1000);
+      if (hp <= 0) {
+        st.finish("dead");
+        document.exitPointerLock?.();
+        st.addKillfeed("KILLED IN ACTION — EXPLOSION");
+      }
+    }
+  }
+  return killed;
 }

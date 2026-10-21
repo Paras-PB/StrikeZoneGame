@@ -8,6 +8,13 @@ export default function MainMenu() {
   const score = useGameStore((s) => s.score);
   const wave = useGameStore((s) => s.wave);
   const timeSurvived = useGameStore((s) => s.timeSurvived);
+  const shots = useGameStore((s) => s.shots);
+  const hits = useGameStore((s) => s.hits);
+  const headshots = useGameStore((s) => s.headshots);
+  const bestScore = useGameStore((s) => s.bestScore);
+  const newBest = useGameStore((s) => s.newBest);
+  const perksOwned = useGameStore((s) => s.perksOwned);
+  const accuracy = shots > 0 ? Math.round((hits / shots) * 100) : 0;
 
   const start = async () => {
     startGame();
@@ -35,7 +42,7 @@ export default function MainMenu() {
             ? `KIA — Wave ${wave} · ${kills} kills · ${score} pts · survived ${Math.floor(timeSurvived)}s`
             : isVictory
             ? `MISSION COMPLETE — ${kills} kills · ${score} pts · ${Math.floor(timeSurvived)}s`
-            : "10 waves of hostiles. Fast movement. Slide, sprint, aim down sights. Survive."}
+            : "10 waves. Runners, heavies, exploders — and a Juggernaut at the end. Shoot the red barrels. Earn a perk every wave. Survive."}
         </p>
 
         {(isDead || isVictory) && (
@@ -44,21 +51,43 @@ export default function MainMenu() {
           </div>
         )}
 
+        {(isDead || isVictory) && (
+          <div className="grid grid-cols-4 gap-3 mb-6 text-center">
+            {[
+              ["ACCURACY", `${accuracy}%`],
+              ["HEADSHOTS", `${headshots}`],
+              ["BEST SCORE", `${Math.max(bestScore, score)}`],
+              ["PERKS TAKEN", `${perksOwned.length}`],
+            ].map(([k, v]) => (
+              <div key={k} className="bg-white/5 border border-white/10 rounded p-3">
+                <div className="text-[10px] tracking-[0.25em] text-white/50 font-bold">{k}</div>
+                <div className="text-2xl font-black">{v}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {newBest && (isDead || isVictory) && (
+          <div className="mb-4 text-yellow-300 font-black tracking-[0.3em] text-sm animate-pulse">★ NEW BEST SCORE ★</div>
+        )}
+        {phase === "menu" && bestScore > 0 && (
+          <div className="mb-4 text-yellow-300/80 font-bold tracking-[0.25em] text-xs">BEST SCORE: {bestScore}</div>
+        )}
+
         <div className="grid grid-cols-2 gap-3 text-left mb-6">
           <div className="bg-white/5 border border-white/10 rounded p-4">
             <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">MOVEMENT — COD FAST</div>
             <ul className="text-sm text-white/80 space-y-1">
               <li><b>WASD</b> move · <b>SHIFT</b> sprint</li>
               <li><b>SPACE</b> jump · <b>C / CTRL</b> slide</li>
-              <li>Slide only while sprinting — chain it</li>
+              <li>Slide needs momentum — chain it into jumps</li>
             </ul>
           </div>
           <div className="bg-white/5 border border-white/10 rounded p-4">
             <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">COMBAT</div>
             <ul className="text-sm text-white/80 space-y-1">
               <li><b>LMB</b> fire · <b>RMB</b> aim (ADS)</li>
-              <li><b>R</b> reload · <b>1 / 2</b> AR / SMG</li>
-              <li>Headshots ×2 — health regenerates</li>
+              <li><b>R</b> reload · <b>1 / 2 / 3</b> AR / SMG / Shotgun</li>
+              <li>Headshots ×2 · red barrels explode · perks every wave</li>
             </ul>
           </div>
         </div>
