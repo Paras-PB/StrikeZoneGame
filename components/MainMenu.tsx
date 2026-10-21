@@ -54,8 +54,10 @@ export default function MainMenu() {
   const isVictory = phase === "victory";
 
   return (
-    <div className="absolute inset-0 z-10 flex justify-center overflow-y-auto bg-gradient-to-b from-black/80 via-black/60 to-black/85 backdrop-blur-[2px]">
-      <div className="max-w-3xl w-full mx-4 my-auto py-6 text-center">
+    <div className="menu-bg absolute inset-0 z-10 flex justify-center overflow-y-auto">
+      {/* readability overlay above the photo, below the content */}
+      <div className="fixed inset-0 bg-gradient-to-b from-black/75 via-black/55 to-black/85 pointer-events-none" />
+      <div className="relative max-w-3xl w-full mx-4 my-auto py-6 text-center [text-shadow:0_2px_14px_rgba(0,0,0,0.85)]">
         <div className="text-orange-500 font-black tracking-[0.4em] text-sm mb-2">TACTICAL COMBAT SIMULATOR</div>
         <h1 className="text-7xl font-black tracking-tighter leading-none mb-1">
           STRIKE<span className="text-orange-500">ZONE</span>
