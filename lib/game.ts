@@ -177,11 +177,11 @@ export interface BarrelDef {
   z: number;
 }
 export const ARENA_BARREL_DEFS: BarrelDef[] = [
-  { id: 1, x: 1, z: -3 },
-  { id: 2, x: -11, z: -21 },
-  { id: 3, x: 24, z: 10 },
-  { id: 4, x: -4, z: 17 },
-  { id: 5, x: 12, z: -12 },
+  { id: 1, x: -38, z: -14 }, // factory interior
+  { id: 2, x: 29, z: 24.5 }, // container-yard lane
+  { id: 3, x: 5.5, z: -19 }, // clock-tower plaza
+  { id: 4, x: 23.5, z: -24.8 }, // house porch (Residential)
+  { id: 5, x: -8, z: 8 }, // main-street corner
 ];
 
 export const FOREST_BARREL_DEFS: BarrelDef[] = [
@@ -403,6 +403,159 @@ const FOREST_TREES: { x: number; z: number; s: number }[] = (() => {
   return out;
 })();
 export { FOREST_CABINS, FOREST_TOWER, FOREST_ROCKS, FOREST_ZONE_CLEARINGS, FOREST_TREES };
+
+// ---- V9: Bermuda Town layout (Arena reshape — shared by World.tsx rendering/colliders and the minimap) ----
+// Streets run along x≈0 and z≈0 (~10 m wide). Every static town box (clock
+// tower body + staircase, factory walls + roof, house walls) is generated
+// ONCE here as a plain box list: World.tsx renders each box and registers it
+// as a collider, so visuals and collision can never drift apart.
+export interface BermudaBox {
+  cx: number;
+  cy: number;
+  cz: number;
+  sx: number;
+  sy: number;
+  sz: number;
+  color: string;
+}
+
+export const BERMUDA_TOWER = { x: 0, z: -12 };
+export const BERMUDA_FACTORY = { x: -33, z: -18, w: 24, d: 15, h: 5 };
+
+export interface BermudaHouse {
+  x: number;
+  z: number;
+  rot: number; // 0 = door faces +z (south), PI = door faces -z (north) — AABB-safe rotations only
+  color: string;
+  roof: string;
+}
+export const BERMUDA_HOUSES: BermudaHouse[] = [
+  { x: 22, z: -30, rot: 0, color: "#7fb3a8", roof: "#a34d33" }, // Residential — muted teal
+  { x: 37, z: -27, rot: Math.PI, color: "#e0a878", roof: "#5d6d7e" }, // Residential — peach
+  { x: 31, z: -12, rot: 0, color: "#8fb6d9", roof: "#a34d33" }, // Residential — sky
+  { x: 11, z: 37, rot: Math.PI, color: "#e6d7a8", roof: "#7a4a63" }, // south — cream
+  { x: -17, z: 31, rot: 0, color: "#c98a8a", roof: "#5d6d7e" }, // south-west — muted rose
+];
+
+export interface BermudaContainer {
+  x: number;
+  z: number;
+  rot: number;
+  color: string;
+  stack?: string; // color of the second container stacked on top
+}
+export const BERMUDA_CONTAINERS: BermudaContainer[] = [
+  { x: 23, z: 21, rot: 0, color: "#d84a35" },
+  { x: 31, z: 21, rot: 0, color: "#2a6db3", stack: "#e0862a" },
+  { x: 39, z: 21, rot: 0, color: "#3f9e4d" },
+  { x: 25, z: 27.5, rot: 0, color: "#e0862a" },
+  { x: 35, z: 27.5, rot: 0, color: "#2a6db3" },
+  { x: 27, z: 35.5, rot: Math.PI / 2, color: "#7a4fa3" },
+  { x: 38, z: 35.5, rot: 0, color: "#d84a35" },
+];
+
+export const BERMUDA_CRATES: { x: number; z: number; s: number; rot?: number }[] = [
+  { x: -40, z: -22, s: 1.2, rot: 0.3 }, // factory interior
+  { x: -26, z: -13.5, s: 1.2, rot: 0.8 }, // factory interior
+  { x: 24, z: -31.5, s: 1.1, rot: 0.2 }, // house interior (Residential)
+  { x: 29, z: -13.5, s: 1.1, rot: 0.6 }, // house interior (Residential)
+  { x: 14, z: 20, s: 1.3, rot: 0.4 },
+  { x: -14, z: 22, s: 1.2, rot: 0.9 },
+  { x: -6, z: -34, s: 1.4, rot: 0.1 },
+];
+
+export const BERMUDA_LAMPS: [number, number][] = [
+  [-5.8, -36],
+  [5.8, -18],
+  [-5.8, 2],
+  [5.8, 18],
+  [-5.8, 36],
+  [-24, 5.8],
+  [24, 5.8],
+  [-40, -5.8],
+  [40, -5.8],
+  [5.8, -44],
+];
+
+export const BERMUDA_BARRIERS: { x: number; z: number; rot: number }[] = [
+  { x: 8, z: 6, rot: 0 },
+  { x: -8, z: 6, rot: 0 },
+  { x: 10, z: -23, rot: Math.PI / 2 },
+  { x: -24, z: -6, rot: 0 },
+];
+
+export const BERMUDA_SANDBAGS: { x: number; z: number; rot: number }[] = [
+  { x: 8, z: -4, rot: 0 },
+  { x: -28, z: -6, rot: 0 },
+];
+
+function bermudaBoxes(): BermudaBox[] {
+  const out: BermudaBox[] = [];
+  const push = (cx: number, cy: number, cz: number, sx: number, sy: number, sz: number, color: string) =>
+    out.push({ cx, cy, cz, sx, sy, sz, color });
+
+  // -- clock tower (0,-12): solid 5×5 body to 9 m, platform slab on top --
+  push(BERMUDA_TOWER.x, 4.5, BERMUDA_TOWER.z, 5, 9, 5, "#8a5a48");
+  push(BERMUDA_TOWER.x, 9.12, BERMUDA_TOWER.z, 6.2, 0.35, 6.2, "#6e4a3a");
+  // External staircase, all risers 0.375 m (engine step-up snaps ≤0.45 m):
+  // flight A climbs the east side south→north (12 steps to a 4.5 m landing)…
+  for (let i = 1; i <= 12; i++) {
+    const top = i * 0.375;
+    push(3.4, top / 2, -6.2 - (i - 0.5) * 0.62, 1.8, top, 0.62, "#83837e");
+  }
+  push(3.4, 2.25, -14.7, 1.8, 4.5, 2.2, "#83837e"); // landing A
+  // …flight B climbs the north face east→west (12 more steps to 9.0 m)…
+  for (let j = 1; j <= 12; j++) {
+    const top = 4.5 + j * 0.375;
+    push(2.5 - (j - 0.5) * 0.62, top / 2, -15.5, 0.62, top, 1.8, "#83837e");
+  }
+  push(-3.7, 9.05, -15.5, 1.6, 0.35, 1.8, "#6e4a3a"); // bridge onto the platform
+
+  // -- factory (-33,-18): 24×15 walls 5 m, door gaps 3.5 wide (S + E), roof slab --
+  const F = BERMUDA_FACTORY;
+  const t = 0.5;
+  const fc = "#4f6f8a";
+  push(F.x, F.h / 2, F.z - F.d / 2, F.w, F.h, t, fc); // north wall
+  push(F.x - F.w / 2, F.h / 2, F.z, t, F.h, F.d, fc); // west wall
+  push(-39.875, F.h / 2, F.z + F.d / 2, 10.25, F.h, t, fc); // south wall, west of door
+  push(-26.125, F.h / 2, F.z + F.d / 2, 10.25, F.h, t, fc); // south wall, east of door
+  push(F.x + F.w / 2, F.h / 2, -22.625, t, F.h, 5.75, fc); // east wall, north of door
+  push(F.x + F.w / 2, F.h / 2, -13.375, t, F.h, 5.75, fc); // east wall, south of door
+  push(F.x, 5.18, F.z, F.w + 0.6, 0.35, F.d + 0.6, "#39434e"); // roof slab
+
+  // -- houses: 4 thin walls each, 2.4 m door gap on the rot side --
+  for (const hs of BERMUDA_HOUSES) {
+    const w = 8;
+    const d = 7;
+    const wt = 0.35;
+    const hh = 3;
+    const dir = hs.rot === 0 ? 1 : -1;
+    const fz = hs.z + dir * (d / 2 - wt / 2);
+    const bz = hs.z - dir * (d / 2 - wt / 2);
+    push(hs.x, hh / 2, bz, w, hh, wt, hs.color); // back wall
+    push(hs.x - w / 2 + wt / 2, hh / 2, hs.z, wt, hh, d, hs.color); // left wall
+    push(hs.x + w / 2 - wt / 2, hh / 2, hs.z, wt, hh, d, hs.color); // right wall
+    const segW = (w - 2.4) / 2;
+    push(hs.x - (1.2 + segW / 2), hh / 2, fz, segW, hh, wt, hs.color); // front, left of door
+    push(hs.x + (1.2 + segW / 2), hh / 2, fz, segW, hh, wt, hs.color); // front, right of door
+  }
+  return out;
+}
+export const BERMUDA_BOXES: BermudaBox[] = bermudaBoxes();
+
+// Named locations for the in-game POI popup (components/LocationTag.tsx).
+export const BERMUDA_POIS: { name: string; x0: number; z0: number; x1: number; z1: number }[] = [
+  { name: "CLOCK TOWER", x0: -12, z0: -24, x1: 12, z1: 0 },
+  { name: "FACTORY", x0: -46, z0: -27, x1: -20, z1: -9 },
+  { name: "CONTAINER YARD", x0: 17, z0: 16, x1: 46, z1: 41 },
+  { name: "RESIDENTIAL", x0: 14, z0: -37, x1: 46, z1: -5 },
+];
+export function bermudaPoiAt(x: number, z: number): string | null {
+  for (const p of BERMUDA_POIS) {
+    if (x >= p.x0 && x <= p.x1 && z >= p.z0 && z <= p.z1) return p.name;
+  }
+  return null;
+}
 
 // ---- V5: Stinger lock-on + homing rockets (stepped by components/Rockets.tsx) ----
 export const lockState: { id: number | null; progress: number; locked: boolean } = {

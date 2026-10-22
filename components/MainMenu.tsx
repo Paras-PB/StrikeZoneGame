@@ -114,8 +114,8 @@ export default function MainMenu() {
               onClick={() => setStore({ mapId: "arena" })}
               className={`holo-panel holo-hoverable pointer-events-auto p-4 active:scale-95 ${mapId === "arena" ? "holo-corners holo-selected" : ""}`}
             >
-              <div className="font-display font-bold tracking-widest text-sm text-cyan-50">🏭 THE ARENA</div>
-              <div className="text-cyan-100/55 text-xs mt-1">The original compound — warehouses, containers, open lanes.</div>
+              <div className="font-display font-bold tracking-widest text-sm text-cyan-50">🏙️ BERMUDA TOWN</div>
+              <div className="text-cyan-100/55 text-xs mt-1">A Free Fire-style town — climbable clock tower, a factory, houses and a container yard.</div>
               {mapId === "arena" && <div className="text-cyan-300 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
             </button>
             <button
@@ -223,7 +223,7 @@ export default function MainMenu() {
             <div className="h-2 bg-cyan-950/80 border border-cyan-400/20 overflow-hidden mb-4">
               <div className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300" style={{ width: `${Math.round(rank.progress * 100)}%` }} />
             </div>
-            <div className="font-display font-bold text-cyan-300 text-xs tracking-widest mb-2">ACHIEVEMENTS — {achievements.length}/8</div>
+            <div className="font-display font-bold text-cyan-300 text-xs tracking-widest mb-2">ACHIEVEMENTS — {achievements.length}/{Object.keys(ACH_DEFS).length}</div>
             <div className="grid grid-cols-4 gap-2">
               {(Object.keys(ACH_DEFS) as AchId[]).map((id) => {
                 const d = ACH_DEFS[id];
