@@ -4,6 +4,11 @@ import MainMenu from "@/components/MainMenu";
 import HUD from "@/components/HUD";
 import PerkDraft from "@/components/PerkDraft";
 import PauseMenu from "@/components/PauseMenu";
+import WaveBanner from "@/components/WaveBanner";
+
+// CompassBar reads playerState from lib/game (three.js) — keep it in a lazy
+// chunk like Minimap so three stays out of the first-load bundle.
+const CompassBar = dynamic(() => import("@/components/CompassBar"), { ssr: false });
 import { useGameStore } from "@/lib/store";
 
 const GameCanvas = dynamic(() => import("@/components/GameCanvas"), { ssr: false });
@@ -22,7 +27,9 @@ export default function Page() {
       {phase === "perk" && <PerkDraft />}
       {phase === "paused" && <PauseMenu />}
       {(phase === "playing" || phase === "perk" || phase === "dead" || phase === "paused") && <HUD />}
-      <div className="absolute bottom-2 right-3 text-[11px] text-white/40 pointer-events-none">
+      <CompassBar />
+      <WaveBanner />
+      <div className="absolute bottom-2 right-3 text-[11px] text-cyan-100/35 pointer-events-none">
         WASD move · SHIFT sprint · SPACE jump · C slide · RMB aim · LMB shoot · R reload · G grenade · 1/2/3/4 weapons · ESC pause · shoot red barrels 💥
       </div>
     </main>

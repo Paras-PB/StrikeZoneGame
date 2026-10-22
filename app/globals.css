@@ -2,19 +2,207 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   V8 — HOLOGRAM UI design system
+   Cyan military hologram: deep navy panels, hairline cyan
+   borders, corner brackets, scanlines, Orbitron/Rajdhani type.
+   ============================================================ */
+
 html, body, #__next {
   height: 100%;
   margin: 0;
-  background: #06090d;
+  background: #02090f;
   overflow: hidden;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: var(--font-ui), Rajdhani, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   user-select: none;
 }
 
 canvas { display: block; }
 
+/* ---------- shared holo building blocks ---------- */
+
+/* Near-black navy glass panel with a hairline cyan border + soft glow. */
+.holo-panel {
+  background-color: rgba(3, 17, 28, 0.82);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  box-shadow: 0 0 24px rgba(8, 145, 178, 0.16), inset 0 0 22px rgba(34, 211, 238, 0.05);
+  backdrop-filter: blur(6px);
+}
+
+/* L-shaped corner brackets on all four corners (background-gradient trick). */
+.holo-corners {
+  --cc: rgba(103, 232, 249, 0.9);
+  --cl: 14px;
+  --ct: 2px;
+  background-image:
+    linear-gradient(var(--cc), var(--cc)), linear-gradient(var(--cc), var(--cc)),
+    linear-gradient(var(--cc), var(--cc)), linear-gradient(var(--cc), var(--cc)),
+    linear-gradient(var(--cc), var(--cc)), linear-gradient(var(--cc), var(--cc)),
+    linear-gradient(var(--cc), var(--cc)), linear-gradient(var(--cc), var(--cc));
+  background-repeat: no-repeat;
+  background-size:
+    var(--cl) var(--ct), var(--ct) var(--cl),
+    var(--cl) var(--ct), var(--ct) var(--cl),
+    var(--cl) var(--ct), var(--ct) var(--cl),
+    var(--cl) var(--ct), var(--ct) var(--cl);
+  background-position:
+    0 0, 0 0,
+    100% 0, 100% 0,
+    0 100%, 0 100%,
+    100% 100%, 100% 100%;
+}
+
+/* Primary action button — bright cyan slab, dark navy text, strong glow. */
+.holo-btn {
+  font-family: var(--font-display), Orbitron, sans-serif;
+  background: linear-gradient(180deg, rgba(103, 232, 249, 0.95), rgba(34, 211, 238, 0.9) 55%, rgba(8, 145, 178, 0.95));
+  color: #02141f;
+  border: 1px solid rgba(165, 243, 252, 0.9);
+  box-shadow: 0 0 34px rgba(34, 211, 238, 0.45), inset 0 0 14px rgba(255, 255, 255, 0.18);
+  transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+.holo-btn:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 0 46px rgba(34, 211, 238, 0.65), inset 0 0 14px rgba(255, 255, 255, 0.22);
+}
+.holo-btn:active { transform: scale(0.95); }
+
+/* Secondary button — transparent glass, cyan hairline. */
+.holo-btn-ghost {
+  font-family: var(--font-display), Orbitron, sans-serif;
+  background: rgba(3, 17, 28, 0.6);
+  color: #cffafe;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.holo-btn-ghost:hover { background: rgba(34, 211, 238, 0.12); border-color: rgba(103, 232, 249, 0.8); }
+.holo-btn-ghost:active { transform: scale(0.95); }
+
+/* Display title with layered cyan glow. */
+.holo-title {
+  font-family: var(--font-display), Orbitron, sans-serif;
+  color: #ecfeff;
+  text-shadow: 0 0 16px rgba(34, 211, 238, 0.6), 0 0 46px rgba(34, 211, 238, 0.28);
+}
+
+/* Small status chip (abilities, toasts, badges). */
+.holo-chip {
+  background: rgba(3, 17, 28, 0.78);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  box-shadow: inset 0 0 12px rgba(34, 211, 238, 0.06);
+  backdrop-filter: blur(4px);
+}
+
+/* Keyboard key cap. */
+.holo-keycap {
+  display: inline-block;
+  background: rgba(8, 47, 73, 0.85);
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  font-size: 11px;
+  color: #cffafe;
+  white-space: nowrap;
+}
+
+/* Selected state for holo panels/cards (wins over .holo-panel on purpose). */
+.holo-selected {
+  border-color: rgba(103, 232, 249, 0.95) !important;
+  background-color: rgba(34, 211, 238, 0.14) !important;
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.35), inset 0 0 22px rgba(34, 211, 238, 0.08) !important;
+}
+
+/* Hover lift + glow for clickable holo panels/cards. */
+.holo-hoverable { transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+.holo-hoverable:hover {
+  transform: translateY(-4px);
+  border-color: rgba(103, 232, 249, 0.85);
+  box-shadow: 0 0 34px rgba(34, 211, 238, 0.35), inset 0 0 22px rgba(34, 211, 238, 0.07);
+}
+
+/* Scanline + grid texture overlay for menu screens (decorative only). */
+.holo-scanlines {
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(103, 232, 249, 0.05) 0px, rgba(103, 232, 249, 0.05) 1px, transparent 1px, transparent 4px),
+    repeating-linear-gradient(90deg, rgba(103, 232, 249, 0.028) 0px, rgba(103, 232, 249, 0.028) 1px, transparent 1px, transparent 56px),
+    repeating-linear-gradient(0deg, rgba(103, 232, 249, 0.028) 0px, rgba(103, 232, 249, 0.028) 1px, transparent 1px, transparent 56px);
+}
+
+/* Cyan range sliders (settings). */
+input.holo-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #0891b2, #164e63);
+  outline: none;
+  cursor: pointer;
+}
+input.holo-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 2px;
+  background: #22d3ee;
+  border: 1px solid #a5f3fc;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.85);
+  cursor: pointer;
+}
+input.holo-range::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border-radius: 2px;
+  background: #22d3ee;
+  border: 1px solid #a5f3fc;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.85);
+  cursor: pointer;
+}
+
+/* Thin cyan scrollbar for the scrollable menu. */
+.holo-scroll::-webkit-scrollbar { width: 8px; }
+.holo-scroll::-webkit-scrollbar-track { background: rgba(3, 17, 28, 0.6); }
+.holo-scroll::-webkit-scrollbar-thumb { background: rgba(34, 211, 238, 0.35); border-radius: 4px; }
+.holo-scroll::-webkit-scrollbar-thumb:hover { background: rgba(34, 211, 238, 0.55); }
+
+/* ---------- animations ---------- */
+
+@keyframes holo-fade-up {
+  0% { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.anim-fade-up { animation: holo-fade-up 0.55s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+
+@keyframes holo-banner {
+  0% { opacity: 0; transform: scale(1.7); letter-spacing: 0.6em; filter: blur(6px); }
+  18% { opacity: 1; transform: scale(1); filter: blur(0); }
+  82% { opacity: 1; transform: scale(0.99); }
+  100% { opacity: 0; transform: scale(0.97) translateY(-8px); }
+}
+.anim-banner { animation: holo-banner 2.2s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+
+@keyframes holo-pulse-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(34, 211, 238, 0.25), inset 0 0 12px rgba(34, 211, 238, 0.06); }
+  50% { box-shadow: 0 0 30px rgba(34, 211, 238, 0.6), inset 0 0 16px rgba(34, 211, 238, 0.14); }
+}
+.anim-pulse-glow { animation: holo-pulse-glow 1.1s ease-in-out infinite; }
+
+@keyframes holo-heartbeat {
+  0%, 100% { opacity: 0.35; }
+  12% { opacity: 0.95; }
+  24% { opacity: 0.45; }
+  36% { opacity: 0.85; }
+}
+.anim-heartbeat { animation: holo-heartbeat 1.15s ease-in-out infinite; }
+
+/* ---------- kept from the old UI (mechanics unchanged) ---------- */
+
 .crosshair-dot {
-  box-shadow: 0 0 8px rgba(0,0,0,.8);
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.9);
 }
 
 @keyframes hitmarker-pop {

@@ -67,7 +67,7 @@ export default function GameCanvas() {
           <p className="text-white/70 text-sm mb-4">
             Three.js could not create a WebGL context (ANGLE / driver exhausted). This is a browser/GPU setting, not a game bug.
           </p>
-          <ol className="text-left text-sm text-white/80 space-y-2 bg-white/5 border border-white/10 rounded p-4 mb-4">
+          <ol className="holo-panel text-left text-sm text-cyan-100/80 space-y-2 p-4 mb-4">
             <li>1. Use <b>Chrome</b> or <b>Edge</b> (not an RDP/minimized window) and open <b>http://localhost:3000</b> — never file://.</li>
             <li>2. Enable <b>Settings → System → Use hardware acceleration</b>, then relaunch the browser.</li>
             <li>3. Update your GPU driver, close other 3D tabs, check <b>chrome://gpu</b> shows WebGL enabled.</li>
@@ -75,7 +75,7 @@ export default function GameCanvas() {
           </ol>
           <button
             onClick={() => setGpu(checkWebGL())}
-            className="bg-orange-600 hover:bg-orange-500 font-bold px-6 py-2 rounded"
+            className="holo-btn font-bold px-6 py-2"
           >
             ↻ RETRY 3D
           </button>
@@ -92,7 +92,7 @@ export default function GameCanvas() {
   return (
     <div className="absolute inset-0">
       {lowSpec && (
-        <div className="absolute top-2 left-2 z-20 text-[11px] bg-black/60 border border-white/10 rounded px-2 py-1 text-white/70 pointer-events-none">
+        <div className="holo-chip absolute top-2 left-2 z-20 text-[11px] px-2 py-1 text-cyan-100/70 pointer-events-none">
           {gpu.software ? "Software rendering — LOW FX mode (shadows off)" : "LOW FX mode — quality set to Low (shadows off)"}
         </div>
       )}

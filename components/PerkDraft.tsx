@@ -64,13 +64,13 @@ export default function PerkDraft() {
   if (choices.length === 0) return null;
 
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-[2px]">
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#010a12]/80 backdrop-blur-[2px] font-ui">
       <div className="max-w-3xl w-full mx-4 text-center">
-        <div className="text-green-400 font-black tracking-[0.35em] text-sm mb-1">WAVE {wave} CLEARED · +250 PTS</div>
-        <h2 className="text-4xl font-black tracking-tight mb-1">
-          CHOOSE AN <span className="text-orange-500">UPGRADE</span>
+        <div className="anim-fade-up text-cyan-300 font-display font-semibold tracking-[0.35em] text-sm mb-1" style={{ textShadow: "0 0 14px rgba(34,211,238,0.55)" }}>WAVE {wave} CLEARED · +250 PTS</div>
+        <h2 className="anim-fade-up font-display text-4xl font-extrabold tracking-tight mb-1" style={{ animationDelay: "60ms" }}>
+          CHOOSE AN <span className="text-cyan-400" style={{ textShadow: "0 0 20px rgba(34,211,238,0.65)" }}>UPGRADE</span>
         </h2>
-        <p className="text-white/50 text-sm mb-6">Score {score} · perks stack for the rest of the run · Wave {wave + 1} starts on pick{wave + 1 === 10 ? " — the JUGGERNAUT waits" : wave + 1 === 8 || (wave + 1) % 7 === 4 ? " — defend the zone" : (wave + 1) % 3 === 0 ? " — night ops" : ""}</p>
+        <p className="text-cyan-100/50 text-sm mb-6">Score {score} · perks stack for the rest of the run · Wave {wave + 1} starts on pick{wave + 1 === 10 ? " — the JUGGERNAUT waits" : wave + 1 === 8 || (wave + 1) % 7 === 4 ? " — defend the zone" : (wave + 1) % 3 === 0 ? " — night ops" : ""}</p>
 
         <div className="grid grid-cols-3 gap-3 text-left">
           {choices.map((id) => {
@@ -79,18 +79,18 @@ export default function PerkDraft() {
               <button
                 key={id}
                 onClick={() => choose(id)}
-                className="pointer-events-auto bg-white/5 hover:bg-orange-600/20 border border-white/10 hover:border-orange-500/60 rounded p-5 transition active:scale-95 text-left"
+                className="holo-panel holo-corners holo-hoverable anim-fade-up pointer-events-auto p-5 active:scale-95 text-left"
               >
                 <div className="text-3xl mb-2">{d.icon}</div>
-                <div className="font-black tracking-wide text-sm mb-1">{d.name}</div>
-                <div className="text-white/60 text-xs leading-relaxed">{d.desc}</div>
+                <div className="font-display font-bold tracking-wide text-sm mb-1 text-cyan-50">{d.name}</div>
+                <div className="text-cyan-100/60 text-[13px] leading-relaxed">{d.desc}</div>
               </button>
             );
           })}
         </div>
 
         {perksOwned.length > 0 && (
-          <div className="mt-5 text-[11px] tracking-widest text-white/40">
+          <div className="mt-5 text-[11px] tracking-widest text-cyan-100/40">
             ACTIVE PERKS: {perksOwned.join(" · ")}
           </div>
         )}

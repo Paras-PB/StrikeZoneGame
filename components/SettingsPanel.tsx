@@ -10,8 +10,8 @@ export default function SettingsPanel() {
   const settings = useGameStore((s) => s.settings);
   const setSettings = useGameStore((s) => s.setSettings);
 
-  const label = "text-[10px] font-black tracking-[0.25em] text-white/50";
-  const value = "text-sm font-black text-orange-400 w-14 text-right";
+  const label = "text-[10px] font-black tracking-[0.25em] text-cyan-100/50";
+  const value = "font-display text-sm font-bold text-cyan-300 w-14 text-right";
 
   return (
     <div className="space-y-4">
@@ -27,7 +27,7 @@ export default function SettingsPanel() {
           step={0.05}
           value={settings.sensitivity}
           onChange={(e) => setSettings({ sensitivity: Number(e.target.value) })}
-          className="w-full accent-orange-500 pointer-events-auto"
+          className="holo-range w-full pointer-events-auto"
         />
       </div>
 
@@ -43,7 +43,7 @@ export default function SettingsPanel() {
           step={1}
           value={settings.volume}
           onChange={(e) => setSettings({ volume: Number(e.target.value) })}
-          className="w-full accent-orange-500 pointer-events-auto"
+          className="holo-range w-full pointer-events-auto"
         />
       </div>
 
@@ -51,10 +51,10 @@ export default function SettingsPanel() {
         <span className={label}>INVERT Y (MOUSE)</span>
         <button
           onClick={() => setSettings({ invertY: !settings.invertY })}
-          className={`pointer-events-auto px-4 py-1.5 rounded border font-black tracking-widest text-xs transition active:scale-95 ${
+          className={`pointer-events-auto px-4 py-1.5 border font-display font-bold tracking-widest text-xs transition active:scale-95 ${
             settings.invertY
-              ? "bg-orange-600/25 border-orange-500 text-orange-300"
-              : "bg-white/5 border-white/10 text-white/60 hover:border-white/30"
+              ? "bg-cyan-400/20 border-cyan-400 text-cyan-200 shadow-[0_0_14px_rgba(34,211,238,0.3)]"
+              : "bg-cyan-950/40 border-cyan-400/20 text-cyan-100/50 hover:border-cyan-400/50"
           }`}
         >
           {settings.invertY ? "ON" : "OFF"}
@@ -68,10 +68,10 @@ export default function SettingsPanel() {
             <button
               key={q}
               onClick={() => setSettings({ quality: q })}
-              className={`pointer-events-auto px-4 py-1.5 rounded border font-black tracking-widest text-xs transition active:scale-95 ${
+              className={`pointer-events-auto px-4 py-1.5 border font-display font-bold tracking-widest text-xs transition active:scale-95 ${
                 settings.quality === q
-                  ? "bg-orange-600/25 border-orange-500 text-orange-300"
-                  : "bg-white/5 border-white/10 text-white/60 hover:border-white/30"
+                  ? "bg-cyan-400/20 border-cyan-400 text-cyan-200 shadow-[0_0_14px_rgba(34,211,238,0.3)]"
+                  : "bg-cyan-950/40 border-cyan-400/20 text-cyan-100/50 hover:border-cyan-400/50"
               }`}
             >
               {q.toUpperCase()}
@@ -79,7 +79,7 @@ export default function SettingsPanel() {
           ))}
         </div>
       </div>
-      <div className="text-[11px] text-white/40 leading-relaxed">
+      <div className="text-[11px] text-cyan-100/40 leading-relaxed">
         Low quality turns shadows off and caps resolution — same as the <span className="font-mono">?lowfx</span> mode.
         Settings save automatically.
       </div>

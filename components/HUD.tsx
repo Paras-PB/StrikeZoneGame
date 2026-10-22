@@ -1,8 +1,18 @@
 "use client";
 import { useGameStore, WEAPONS } from "@/lib/store";
+import type { WeaponId } from "@/lib/store";
 import dynamic from "next/dynamic";
 const Minimap = dynamic(() => import("./Minimap"), { ssr: false });
 const LockIndicator = dynamic(() => import("./LockIndicator"), { ssr: false });
+
+const WEAPON_SLOTS: { id: WeaponId; key: string; label: string }[] = [
+  { id: "ar", key: "1", label: "AR" },
+  { id: "smg", key: "2", label: "SMG" },
+  { id: "sg", key: "3", label: "SG" },
+  { id: "sn", key: "4", label: "SNIPER" },
+  { id: "saw", key: "5", label: "SAW" },
+  { id: "stinger", key: "6", label: "STINGER" },
+];
 
 export default function HUD() {
   const health = useGameStore((s) => s.health);
@@ -50,9 +60,28 @@ export default function HUD() {
   const w = WEAPONS[active];
   const a = ammo[active];
   const hpPct = Math.max(0, (health / maxHealth) * 100);
+  const lowAmmo = a.mag > 0 && a.mag <= Math.ceil(w.mag * 0.25);
+  const outOfAmmo = a.mag === 0;
+
+  // segmented health: one segment per 10 HP
+  const segTotal = Math.max(1, Math.ceil(maxHealth / 10));
+  const segFilled = Math.max(health > 0 ? 1 : 0, Math.min(segTotal, Math.ceil(health / 10)));
+  const segColor =
+    hpPct > 35
+      ? "bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.55)]"
+      : hpPct > 20
+        ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+        : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]";
+
+  const abilities = [
+    { k: "G", label: "FRAG", n: grenades, activeCls: "text-cyan-100" },
+    { k: "F", label: "SENTRY", n: turrets, activeCls: "text-cyan-300" },
+    { k: "X", label: "AIRSTRIKE", n: airstrikes, activeCls: "text-red-300 animate-pulse" },
+    { k: "H", label: "MEDKIT", n: healthBags, activeCls: "text-green-300" },
+  ];
 
   return (
-    <div className="pointer-events-none absolute inset-0 select-none">
+    <div className="pointer-events-none absolute inset-0 select-none font-ui">
       {/* damage vignette */}
       <div
         key={damageFlash}
@@ -63,11 +92,17 @@ export default function HUD() {
           transition: "opacity 0.6s",
         }}
       />
-      {/* low hp pulse */}
-      {hpPct < 35 && (
+      {/* low hp vignette — steady amber-red under 35%, heartbeat under 20% */}
+      {hpPct < 35 && hpPct >= 20 && (
         <div
           className="absolute inset-0 animate-pulse"
           style={{ background: "radial-gradient(ellipse at center, transparent 50%, rgba(180,0,0,0.5) 100%)" }}
+        />
+      )}
+      {hpPct < 20 && (
+        <div
+          className="absolute inset-0 anim-heartbeat"
+          style={{ background: "radial-gradient(ellipse at center, transparent 48%, rgba(190,0,0,0.62) 100%)" }}
         />
       )}
       {/* ADS vignette */}
@@ -77,24 +112,24 @@ export default function HUD() {
       {!ads && (
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <div className="relative w-10 h-10">
-            <div className="absolute left-1/2 top-1/2 w-[4px] h-[4px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white crosshair-dot" />
-            <div className={`absolute left-1/2 top-[2px] w-[2px] h-[9px] -translate-x-1/2 bg-white/90 ${sprinting ? "opacity-40" : ""}`} />
-            <div className="absolute left-1/2 bottom-[2px] w-[2px] h-[9px] -translate-x-1/2 bg-white/90" />
-            <div className="absolute top-1/2 left-[2px] h-[2px] w-[9px] -translate-y-1/2 bg-white/90" />
-            <div className="absolute top-1/2 right-[2px] h-[2px] w-[9px] -translate-y-1/2 bg-white/90" />
+            <div className="absolute left-1/2 top-1/2 w-[4px] h-[4px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-300 crosshair-dot" />
+            <div className={`absolute left-1/2 top-[2px] w-[2px] h-[9px] -translate-x-1/2 bg-cyan-200/90 ${sprinting ? "opacity-40" : ""}`} />
+            <div className="absolute left-1/2 bottom-[2px] w-[2px] h-[9px] -translate-x-1/2 bg-cyan-200/90" />
+            <div className="absolute top-1/2 left-[2px] h-[2px] w-[9px] -translate-y-1/2 bg-cyan-200/90" />
+            <div className="absolute top-1/2 right-[2px] h-[2px] w-[9px] -translate-y-1/2 bg-cyan-200/90" />
           </div>
         </div>
       )}
       {ads && (
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="w-[6px] h-[6px] rounded-full border border-white/80 bg-red-500/80" />
+          <div className="w-[6px] h-[6px] rounded-full border border-cyan-200 bg-red-500/80" />
         </div>
       )}
 
       {/* hitmarker */}
       {Date.now() - hitmarker < 300 && (
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className={`hitmarker-anim w-8 h-8 ${hitmarkerKill ? "text-red-500" : "text-white"}`}>
+          <div className={`hitmarker-anim w-8 h-8 ${hitmarkerKill ? "text-red-500" : "text-cyan-300"}`}>
             <svg viewBox="0 0 32 32" className="w-full h-full">
               <g stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                 <line x1="6" y1="6" x2="12" y2="12" />
@@ -107,57 +142,57 @@ export default function HUD() {
         </div>
       )}
 
-      {/* top bar */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-6 bg-black/50 backdrop-blur px-6 py-2 rounded border border-white/10">
+      {/* top stats bar (below the compass) */}
+      <div className="holo-panel holo-corners absolute top-[64px] left-1/2 -translate-x-1/2 flex items-center gap-6 px-6 py-2">
         <div className="text-center">
-          <div className="text-[10px] tracking-[0.25em] text-orange-400 font-bold">WAVE</div>
-          <div className="text-2xl font-black leading-none">{wave || "—"}</div>
-          <div className="text-[9px] tracking-[0.2em] text-white/45 font-bold mt-0.5">{mapId === "forest" ? "🌲 FOREST" : mapId === "autumn" ? "🍂 AUTUMN" : "🏭 ARENA"}</div>
+          <div className="text-[10px] tracking-[0.25em] text-cyan-400 font-bold">WAVE</div>
+          <div className="font-display text-2xl font-extrabold leading-none text-cyan-50">{wave || "—"}</div>
+          <div className="text-[9px] tracking-[0.2em] text-cyan-100/45 font-bold mt-0.5">{mapId === "forest" ? "🌲 FOREST" : mapId === "autumn" ? "🍂 AUTUMN" : "🏭 ARENA"}</div>
         </div>
-        <div className="w-px h-8 bg-white/15" />
+        <div className="w-px h-8 bg-cyan-400/20" />
         <div className="text-center">
           <div className="text-[10px] tracking-[0.25em] text-red-400 font-bold">HOSTILES</div>
-          <div className="text-2xl font-black leading-none">{enemiesLeft}</div>
+          <div className="font-display text-2xl font-extrabold leading-none text-cyan-50">{enemiesLeft}</div>
         </div>
-        <div className="w-px h-8 bg-white/15" />
+        <div className="w-px h-8 bg-cyan-400/20" />
         <div className="text-center">
-          <div className="text-[10px] tracking-[0.25em] text-white/60 font-bold">KILLS</div>
-          <div className="text-2xl font-black leading-none">{kills}</div>
+          <div className="text-[10px] tracking-[0.25em] text-cyan-400/70 font-bold">KILLS</div>
+          <div className="font-display text-2xl font-extrabold leading-none text-cyan-50">{kills}</div>
         </div>
-        <div className="w-px h-8 bg-white/15" />
+        <div className="w-px h-8 bg-cyan-400/20" />
         <div className="text-center">
-          <div className="text-[10px] tracking-[0.25em] text-yellow-400 font-bold">SCORE</div>
-          <div className="text-2xl font-black leading-none">{score}</div>
+          <div className="text-[10px] tracking-[0.25em] text-cyan-300 font-bold">SCORE</div>
+          <div className="font-display text-2xl font-extrabold leading-none text-cyan-50">{score}</div>
         </div>
       </div>
 
       {/* boss health bar */}
       {bossMax > 0 && bossHealth > 0 && (
-        <div className="absolute top-[74px] left-1/2 -translate-x-1/2 w-[420px] max-w-[70vw]">
-          <div className="flex justify-between text-[10px] font-black tracking-[0.3em] text-red-400 mb-1">
+        <div className="absolute top-[128px] left-1/2 -translate-x-1/2 w-[420px] max-w-[70vw]">
+          <div className="flex justify-between font-display text-[10px] font-bold tracking-[0.3em] text-red-400 mb-1">
             <span>{bossKind === "gunship" ? `🚁 GUNSHIP${bossEnraged ? " — WEAPONS FREE" : ""}` : `☠ JUGGERNAUT${bossEnraged ? " — ENRAGED" : ""}`}</span>
             <span>{bossHealth}</span>
           </div>
-          <div className="h-3 bg-white/10 rounded overflow-hidden border border-red-500/40">
-            <div className="h-full bg-gradient-to-r from-red-800 via-red-600 to-orange-500 transition-all" style={{ width: `${bossPct}%` }} />
+          <div className="h-3.5 bg-[#03111c]/85 overflow-hidden border border-cyan-400/40 shadow-[0_0_16px_rgba(8,145,178,0.25)]">
+            <div className="h-full bg-gradient-to-r from-red-900 via-red-600 to-red-400 transition-all" style={{ width: `${bossPct}%` }} />
           </div>
         </div>
       )}
 
-      {/* combo + night badges */}
-      <div className="absolute top-[198px] left-4 flex flex-col gap-1 items-start">
+      {/* combo + environment badges */}
+      <div className="absolute top-[198px] left-4 flex flex-col gap-1.5 items-start">
         {comboLive && (
-          <div className="bg-orange-600/80 px-3 py-1 rounded font-black tracking-widest text-sm animate-pulse">
+          <div className={`holo-chip px-3 py-1 font-display font-bold tracking-widest text-sm text-cyan-200 ${combo >= 4 ? "anim-pulse-glow" : ""}`}>
             COMBO ×{Math.min(combo, 5)} — {combo} CHAIN
           </div>
         )}
-        {night && <div className="bg-indigo-950/80 border border-indigo-400/30 px-3 py-1 rounded text-xs font-bold tracking-widest">🌙 NIGHT OPS</div>}
-        {storm && <div className="bg-slate-800/85 border border-sky-300/30 px-3 py-1 rounded text-xs font-bold tracking-widest">🌧️ STORM FRONT</div>}
+        {night && <div className="holo-chip px-3 py-1 text-xs font-bold tracking-widest text-cyan-200">🌙 NIGHT OPS</div>}
+        {storm && <div className="holo-chip px-3 py-1 text-xs font-bold tracking-widest text-sky-200">🌧️ STORM FRONT</div>}
       </div>
 
       {/* floating damage number */}
       {lastHitDmg > 0 && Date.now() - lastHitAt < 350 && (
-        <div className="absolute left-1/2 top-[56%] -translate-x-1/2 text-yellow-300 font-black text-lg" style={{ textShadow: "0 0 8px rgba(0,0,0,0.9)" }}>
+        <div className="absolute left-1/2 top-[56%] -translate-x-1/2 font-display text-cyan-100 font-extrabold text-lg" style={{ textShadow: "0 0 10px rgba(34,211,238,0.8), 0 0 4px rgba(0,0,0,0.9)" }}>
           -{lastHitDmg}
         </div>
       )}
@@ -174,18 +209,21 @@ export default function HUD() {
 
       {/* objective banner */}
       {objective === "defend" && (
-        <div className="absolute top-[118px] left-1/2 -translate-x-1/2 text-center">
-          <div className={`inline-block px-5 py-2 rounded font-black tracking-[0.25em] border ${playerInZone ? "bg-green-950/70 border-green-400/50 text-green-300" : "bg-red-950/70 border-red-400/50 text-red-300 animate-pulse"}`}>
+        <div className="absolute top-[168px] left-1/2 -translate-x-1/2 text-center">
+          <div
+            className={`holo-panel inline-block px-5 py-2 font-display font-bold tracking-[0.25em] ${playerInZone ? "text-green-300" : "text-red-300 animate-pulse"}`}
+            style={{ borderColor: playerInZone ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)" }}
+          >
             🛡️ DEFEND THE ZONE — {Math.ceil(objectiveTimeLeft)}s {playerInZone ? "" : "· GET IN THE ZONE!"}
           </div>
         </div>
       )}
 
       {/* overdrive + achievement toast */}
-      <div className="absolute top-[118px] right-4 flex flex-col gap-1 items-end">
-        {overdrive && <div className="bg-amber-600/85 px-3 py-1 rounded font-black tracking-widest text-xs animate-pulse">⚡ OVERDRIVE — 2× DAMAGE</div>}
+      <div className="absolute top-[168px] right-4 flex flex-col gap-1.5 items-end">
+        {overdrive && <div className="holo-chip anim-pulse-glow px-3 py-1 font-display font-bold tracking-widest text-xs text-cyan-200">⚡ OVERDRIVE — 2× DAMAGE</div>}
         {achToast && Date.now() - achToast.at < 4200 && (
-          <div className="bg-yellow-500/90 text-black px-3 py-1 rounded font-black tracking-wide text-xs">
+          <div className="bg-cyan-400 text-[#02141f] px-3 py-1.5 font-display font-extrabold tracking-wide text-xs shadow-[0_0_24px_rgba(34,211,238,0.55)]">
             {achToast.icon} ACHIEVEMENT — {achToast.name}
           </div>
         )}
@@ -194,49 +232,75 @@ export default function HUD() {
       {/* killfeed */}
       <div className="absolute top-4 right-4 flex flex-col gap-1 items-end">
         {killfeed.map((k) => (
-          <div key={k.id} className="bg-black/60 border-l-2 border-orange-500 px-3 py-1 text-xs font-semibold rounded">
+          <div key={k.id} className="holo-chip border-l-2 border-l-cyan-400 px-3 py-1 text-xs font-semibold text-cyan-50">
             {k.text}
           </div>
         ))}
       </div>
 
-      {/* bottom left: health */}
-      <div className="absolute bottom-6 left-6 w-72">
-        <div className="flex justify-between text-[11px] font-bold tracking-widest text-white/70 mb-1">
-          <span>HEALTH {healingAura ? "· ✚ HEALING" : sliding ? "· SLIDING" : sprinting ? "· SPRINTING" : ""}</span>
-          <span>{Math.ceil(health)}</span>
+      {/* bottom left: segmented health */}
+      <div className="holo-panel holo-corners absolute bottom-6 left-6 w-80 px-4 py-3">
+        <div className="flex justify-between items-baseline text-[11px] font-bold tracking-widest text-cyan-100/70 mb-1.5">
+          <span>
+            HEALTH
+            {healingAura ? <span className="text-green-300"> · ✚ HEALING</span> : sliding ? <span className="text-cyan-300"> · SLIDING</span> : sprinting ? <span className="text-cyan-300"> · SPRINTING</span> : ""}
+          </span>
+          <span className={`font-display text-lg leading-none ${hpPct <= 20 ? "text-red-400" : hpPct <= 35 ? "text-amber-300" : "text-cyan-50"}`}>
+            {Math.ceil(health)}
+            <span className="text-[10px] text-cyan-100/40"> / {maxHealth}</span>
+          </span>
         </div>
-        <div className="h-3 bg-white/10 rounded overflow-hidden border border-white/10">
-          <div
-            className={`h-full transition-all ${hpPct > 60 ? "bg-gradient-to-r from-green-500 to-lime-400" : hpPct > 30 ? "bg-gradient-to-r from-yellow-500 to-orange-400" : "bg-gradient-to-r from-red-600 to-red-400"}`}
-            style={{ width: `${hpPct}%` }}
-          />
+        <div className={`flex gap-[3px] ${hpPct <= 20 ? "animate-pulse" : ""}`}>
+          {Array.from({ length: segTotal }, (_, i) => (
+            <div
+              key={i}
+              className={`h-3 flex-1 -skew-x-[16deg] transition-all duration-200 ${i < segFilled ? segColor : "bg-cyan-400/10"}`}
+            />
+          ))}
         </div>
       </div>
 
-      {/* bottom right: ammo */}
-      <div className="absolute bottom-6 right-6 text-right">
-        <div className="text-[11px] tracking-[0.2em] text-orange-400 font-bold">{w.name} {reloading && <span className="text-yellow-300 animate-pulse">· RELOADING</span>}</div>
-        <div className="font-black text-5xl leading-none">
-          {a.mag}<span className="text-xl text-white/50"> / {a.reserve}</span>
+      {/* bottom right: ammo + weapons + abilities */}
+      <div className="holo-panel holo-corners absolute bottom-6 right-6 px-4 py-3 text-right">
+        <div className="font-display text-[11px] tracking-[0.25em] text-cyan-300 font-bold">
+          {w.name}
+          {reloading && <span className="text-amber-300 animate-pulse"> · RELOADING</span>}
+          {!reloading && outOfAmmo && <span className="text-red-400 animate-pulse"> · NO AMMO — R</span>}
+          {!reloading && lowAmmo && <span className="text-amber-300 animate-pulse"> · LOW AMMO</span>}
         </div>
-        <div className="mt-1 text-[11px] text-white/60">
-          <span className={active === "ar" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>1 AR</span>{" "}
-          <span className={active === "smg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>2 SMG</span>{" "}
-          <span className={active === "sg" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>3 SG</span>{" "}
-          <span className={active === "sn" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>4 SNIPER</span>{" "}
-          <span className={active === "saw" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>5 SAW</span>{" "}
-          <span className={active === "stinger" ? "text-white font-bold border border-white/30 rounded px-1" : "px-1"}>6 STINGER</span>
+        <div
+          className={`font-display font-extrabold text-6xl leading-none ${outOfAmmo ? "text-red-400" : lowAmmo ? "text-amber-300" : "text-cyan-50"}`}
+          style={{ textShadow: "0 0 22px rgba(34,211,238,0.35)" }}
+        >
+          {a.mag}
+          <span className="text-2xl text-cyan-200/45"> / {a.reserve}</span>
         </div>
-        <div className="mt-1 text-[11px] text-white/60">
-          <span className={grenades > 0 ? "text-orange-300 font-bold" : ""}>G FRAG ×{grenades}</span>
-          {" · "}
-          <span className={turrets > 0 ? "text-cyan-300 font-bold" : ""}>🤖 F SENTRY ×{turrets}</span>
-          {" · "}
-          <span className={airstrikes > 0 ? "text-red-300 font-bold animate-pulse" : ""}>✈ X AIRSTRIKE ×{airstrikes}</span>
-          {" · "}
-          <span className={healthBags > 0 ? "text-green-300 font-bold" : ""}>✚ H MEDKIT ×{healthBags}</span>
-          {overdrive && <span className="text-amber-300 font-bold"> · ⚡2× DMG</span>}
+        <div className="mt-2 flex gap-1 justify-end">
+          {WEAPON_SLOTS.map((s) => (
+            <span
+              key={s.id}
+              className={`px-1.5 py-0.5 text-[10px] font-bold tracking-wider border ${
+                active === s.id
+                  ? "border-cyan-300 bg-cyan-400/15 text-cyan-100 shadow-[0_0_10px_rgba(34,211,238,0.35)]"
+                  : "border-cyan-400/15 text-cyan-100/40"
+              }`}
+            >
+              {s.key} {s.label}
+            </span>
+          ))}
+        </div>
+        <div className="mt-2 flex gap-1.5 justify-end">
+          {abilities.map((ab) => (
+            <span
+              key={ab.k}
+              className={`holo-chip flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold ${ab.n > 0 ? ab.activeCls : "opacity-40 text-cyan-100/50"}`}
+            >
+              <span className="holo-keycap">{ab.k}</span>
+              {ab.label}
+              <span className="font-display">×{ab.n}</span>
+            </span>
+          ))}
+          {overdrive && <span className="holo-chip px-2 py-1 text-[11px] font-bold text-cyan-200 anim-pulse-glow">⚡2× DMG</span>}
         </div>
       </div>
 
@@ -253,7 +317,7 @@ function LockHint() {
   return (
     <div
       id="lock-hint"
-      className="absolute left-1/2 top-[62%] -translate-x-1/2 text-xs bg-black/60 px-3 py-1 rounded border border-white/10 hidden"
+      className="holo-chip absolute left-1/2 top-[62%] -translate-x-1/2 text-xs font-bold tracking-widest text-cyan-100 px-3 py-1 hidden"
     >
       CLICK TO LOCK AIM
     </div>
