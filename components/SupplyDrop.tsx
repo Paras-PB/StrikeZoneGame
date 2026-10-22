@@ -14,6 +14,15 @@ const SPOTS: [number, number][] = [
   [-24, -12],
   [4, 26],
 ];
+// V9 Bermuda Town: open-ground spots only (the shared list's [-24,-12] is
+// inside the Factory now)
+const ARENA_SPOTS: [number, number][] = [
+  [6, -18],
+  [-14, 18],
+  [20, -2],
+  [-14, -30],
+  [4, 26],
+];
 
 interface Reward {
   name: string;
@@ -66,7 +75,8 @@ export default function SupplyDrop() {
       g.visible = false;
       elapsed.current += dt;
       if (elapsed.current >= dropAt.current) {
-        const [x, z] = SPOTS[Math.floor(Math.random() * SPOTS.length)];
+        const spots = s.mapId === "arena" ? ARENA_SPOTS : SPOTS;
+        const [x, z] = spots[Math.floor(Math.random() * spots.length)];
         pos.current.set(x, 42, z);
         setState("falling");
         s.addKillfeed("📦 SUPPLY DROP INBOUND — CHECK THE FLARE");

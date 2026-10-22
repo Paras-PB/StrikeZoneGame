@@ -10,7 +10,7 @@ A fast, COD-style **wave shooter that runs entirely in your browser** — no dow
 
 **Survive 10 waves. Draft a perk after every wave. Kill the Juggernaut. Then decide: extract, or push into endless.**
 
-> 3 maps · 9 enemy types · 2 bosses · 6 weapons · 12 achievements · 8 ranks · ~100 kB first load
+> 3 maps · 9 enemy types · 2 bosses · 6 weapons · 13 achievements · 8 ranks · ~100 kB first load
 
 ---
 
@@ -90,7 +90,7 @@ Plus **frag grenades** (arc, bounce, 1.6 s fuse), **explosive barrels** that cha
 
 ## 🗺️ Maps
 
-- **🏭 The Arena** — the original battleground: crates, cover, floodlights.
+- **🏙️ Bermuda Town** — a Free Fire-style town (V9): a climbable **Clock Tower** at the plaza, an enterable **Factory**, five houses, and a **Container Yard** — with named locations that announce themselves as you enter them.
 - **🌲 Forest Outpost** — dawn mist, 46 trees, log cabins, a watchtower and a palisade.
 - **🍂 Autumn Ridge** — the outpost at sunset: golden canopy, leaf-litter ground, falling leaves.
 
@@ -98,7 +98,7 @@ Plus **frag grenades** (arc, bounce, 1.6 s fuse), **explosive barrels** that cha
 
 - **Perk draft** after every wave: damage, speed, reload, max health, ammo, regen — they stack all run.
 - **XP & 8 ranks** — Recruit → Corporal → Sergeant → Lieutenant → Captain → Major → Colonel → Commander, persistent across sessions.
-- **12 achievements** with in-game toasts and a menu checklist (First Blood, Demolitionist, Sharpshooter, Night Owl, Boss Slayer, Skyfall, Storm Rider, Timber, …).
+- **13 achievements** with in-game toasts and a menu checklist (First Blood, Demolitionist, Sharpshooter, Night Owl, Boss Slayer, Skyfall, Storm Rider, Timber, Bermuda Regular, …).
 - **Combo system** — chained kills within 3.5 s multiply score up to ×5, with DOUBLE KILL / TRIPLE KILL / RAMPAGE callouts.
 - **Live tactical minimap** — enemies in real time (bosses and marksmen marked), zone, barrels, sentry and airstrike markers.
 - **Game feel** — final-kill slow-motion, floating damage numbers, headshot *ping*, tracers, hitmarkers, killfeed, damage flash, camera roll + FOV kick on slides.
@@ -132,6 +132,17 @@ V8 is a full frontend overhaul — every screen rebuilt on one **cyan military-h
 - **NEW wave banner** — an animated "WAVE N" splash as each wave begins, calling out NIGHT OPS, STORM WARNING, DEFEND THE ZONE, the FINAL WAVE, boss inbounds, and the start of ENDLESS MODE.
 - Perk draft, pause menu, settings (cyan sliders/toggles), minimap frame and the Stinger lock readout all speak the same holo language now.
 
+## 🏙️ V9 — BERMUDA TOWN
+
+The Arena is gone — in its place, a Free Fire (Bermuda-style) town built around named locations, all geometry generated from one shared layout table so rendering, collision and the minimap can never disagree.
+
+- **Clock Tower** — a 9 m brick tower on the central plaza with a glowing clock face and an open railed platform on top. An external staircase (two flights, 24 steps) wraps the east and north sides — climb it and snipe the whole town.
+- **Factory** — a 24×15 m enterable warehouse west: two 3.5 m doorways, window strips, a color-block sign, crates and a barrel inside, and a defend-the-zone spot on its floor.
+- **Houses** — five enterable houses (door gaps, pitched roofs, warm windows) in FF pastels: a three-house **Residential** cluster in the north-east plus two more south.
+- **Container Yard** — rows of ribbed containers in red/blue/green/orange/purple, one stack two high, with lanes to fight through.
+- **Named locations** — entering **CLOCK TOWER**, **FACTORY**, **CONTAINER YARD** or **RESIDENTIAL** splashes the name on screen, Free Fire style. Streets, sidewalks, crosswalks and the plaza are painted into a new world-aligned ground texture, and the town gets a brighter daytime sky.
+- Barrels, defend zones, supply drops and the minimap all moved to match the town. New achievement: **BERMUDA REGULAR** (win a run on Bermuda Town) — 13 total.
+
 ## 📜 Version history
 
 | Version | Highlights |
@@ -144,6 +155,7 @@ V8 is a full frontend overhaul — every screen rebuilt on one **cyan military-h
 | V6 — EVERFALL | Leafy broadleaf trees, Autumn Ridge map, Stalker ambusher |
 | V7 — PAUSE & SETTINGS | Esc pause menu that truly freezes the sim; sensitivity / volume / invert-Y / quality settings |
 | V8 — HOLOGRAM UI | Full UI overhaul: cyan holo design system, rebuilt HUD, compass bar, wave banner, Orbitron/Rajdhani type |
+| V9 — BERMUDA TOWN | Arena reshaped into a Free Fire-style town: climbable clock tower, enterable factory + houses, container yard, named-location popups |
 
 ---
 

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { useGameStore } from "@/lib/store";
-import { enemyRegistry, playerState, barrelRegistry, turretState, airstrikeState, bagState, FOREST_TREES, FOREST_CABINS } from "@/lib/game";
+import { enemyRegistry, playerState, barrelRegistry, turretState, airstrikeState, bagState, FOREST_TREES, FOREST_CABINS, BERMUDA_FACTORY, BERMUDA_TOWER, BERMUDA_HOUSES, BERMUDA_CONTAINERS } from "@/lib/game";
 
 const MM_SIZE = 148;
 const MM_WORLD = 120; // world spans -60..60
@@ -48,19 +48,18 @@ export default function Minimap() {
         g.fillStyle = "rgba(140,140,132,0.8)";
         g.fillRect(px(24) - 3, pz(-26) - 3, 6, 6); // watchtower
       } else {
-        g.fillStyle = "rgba(165,165,158,0.5)";
-        const blocks: [number, number, number, number][] = [
-          [-28, -20, 18, 12],
-          [28, 22, 18, 12],
-          [-30, 26, 10, 14],
-          [-8, -8, 6.2, 2.5],
-          [10, 4, 2.5, 6.2],
-          [10, -14, 6.2, 2.5],
-          [-18, 8, 6.2, 2.5],
-          [22, -6, 6.2, 2.5],
-          [2, 24, 6.2, 2.5],
-        ];
-        for (const [x, z, w, d] of blocks) g.fillRect(px(x - w / 2), pz(z - d / 2), (w / MM_WORLD) * MM_SIZE, (d / MM_WORLD) * MM_SIZE);
+        // V9 Bermuda Town backdrop — drawn from the shared layout constants
+        const rect = (x: number, z: number, w: number, d: number) =>
+          g.fillRect(px(x - w / 2), pz(z - d / 2), (w / MM_WORLD) * MM_SIZE, (d / MM_WORLD) * MM_SIZE);
+        g.fillStyle = "rgba(190,190,180,0.32)";
+        g.beginPath();
+        g.arc(px(BERMUDA_TOWER.x), pz(BERMUDA_TOWER.z), (11 / MM_WORLD) * MM_SIZE, 0, Math.PI * 2);
+        g.fill(); // clock-tower plaza
+        g.fillStyle = "rgba(165,165,158,0.55)";
+        rect(BERMUDA_FACTORY.x, BERMUDA_FACTORY.z, BERMUDA_FACTORY.w, BERMUDA_FACTORY.d);
+        rect(BERMUDA_TOWER.x, BERMUDA_TOWER.z, 5, 5);
+        for (const h of BERMUDA_HOUSES) rect(h.x, h.z, 8, 7);
+        for (const cn of BERMUDA_CONTAINERS) rect(cn.x, cn.z, cn.rot === 0 ? 6.2 : 2.5, cn.rot === 0 ? 2.5 : 6.2);
       }
 
       // defend zone ring

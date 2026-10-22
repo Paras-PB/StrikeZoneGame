@@ -42,10 +42,9 @@ let botId = 1;
 const MAX_WAVE = 10;
 const DRONE_HOVER = 3.3;
 const ZONE_SPOTS: [number, number][] = [
-  [0, 10],
-  [-18, 8],
-  [16, 14],
-  [0, -6],
+  [9, -12], // clock-tower plaza
+  [-33, -18], // factory floor
+  [31, 25.5], // container-yard lane
 ];
 const FOREST_ZONE_SPOTS: [number, number][] = [
   [0, 18],
@@ -952,6 +951,7 @@ export default function Enemies() {
         if (st.storm) st.unlockAch("stormrider");
         if (s.wave >= MAX_WAVE && !s.endless) {
           if (st.mapId === "autumn") st.unlockAch("autumnop");
+          if (st.mapId === "arena") st.unlockAch("bermuda");
           st.finish("victory");
           document.exitPointerLock?.();
         } else {
