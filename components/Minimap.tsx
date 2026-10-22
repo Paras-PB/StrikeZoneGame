@@ -133,7 +133,7 @@ export default function Minimap() {
       g.closePath();
       g.fillStyle = "#ffffff";
       g.fill();
-      g.strokeStyle = "#ff7a1a";
+      g.strokeStyle = "#22d3ee";
       g.lineWidth = 1.4;
       g.stroke();
       g.restore();
@@ -146,8 +146,8 @@ export default function Minimap() {
 
   return (
     <div className="absolute top-4 left-4">
-      <canvas ref={ref} width={MM_SIZE} height={MM_SIZE} className="rounded border border-white/25 shadow-lg block" />
-      <div className="mt-1 flex justify-between text-[9px] font-bold tracking-[0.16em] text-white/65 w-[148px]">
+      <canvas ref={ref} width={MM_SIZE} height={MM_SIZE} className="border border-cyan-400/45 shadow-[0_0_18px_rgba(8,145,178,0.35)] block" />
+      <div className="mt-1 flex justify-between text-[9px] font-bold tracking-[0.16em] text-cyan-100/60 w-[148px]">
         <span>🗺️ TACTICAL MAP</span>
         <span>
           <span className="text-red-400">●</span> HOSTILE · <span className="text-white">▲</span> YOU

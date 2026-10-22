@@ -57,15 +57,16 @@ export default function MainMenu() {
   const isVictory = phase === "victory";
 
   return (
-    <div className="menu-bg absolute inset-0 z-10 flex justify-center overflow-y-auto">
-      {/* readability overlay above the photo, below the content */}
-      <div className="fixed inset-0 bg-gradient-to-b from-black/75 via-black/55 to-black/85 pointer-events-none" />
-      <div className="relative max-w-3xl w-full mx-4 my-auto py-6 text-center [text-shadow:0_2px_14px_rgba(0,0,0,0.85)]">
-        <div className="text-orange-500 font-black tracking-[0.4em] text-sm mb-2">TACTICAL COMBAT SIMULATOR</div>
-        <h1 className="text-7xl font-black tracking-tighter leading-none mb-1">
-          STRIKE<span className="text-orange-500">ZONE</span>
+    <div className="menu-bg holo-scroll absolute inset-0 z-10 flex justify-center overflow-y-auto font-ui">
+      {/* readability overlay above the photo, below the content — retinted navy/cyan for V8 */}
+      <div className="fixed inset-0 bg-gradient-to-b from-[#020b14]/85 via-[#03141f]/65 to-[#010608]/92 pointer-events-none" />
+      <div className="holo-scanlines fixed inset-0 z-[1] pointer-events-none" />
+      <div className="relative z-[2] max-w-3xl w-full mx-4 my-auto py-6 text-center [text-shadow:0_2px_14px_rgba(0,0,0,0.85)]">
+        <div className="anim-fade-up text-cyan-400 font-display font-semibold tracking-[0.45em] text-sm mb-2" style={{ textShadow: "0 0 14px rgba(34,211,238,0.6)" }}>TACTICAL COMBAT SIMULATOR</div>
+        <h1 className="anim-fade-up font-display text-7xl font-extrabold tracking-tight leading-none mb-1" style={{ animationDelay: "60ms" }}>
+          STRIKE<span className="text-cyan-400" style={{ textShadow: "0 0 26px rgba(34,211,238,0.75), 0 0 60px rgba(34,211,238,0.35)" }}>ZONE</span>
         </h1>
-        <p className="text-white/60 mb-6 text-sm tracking-wide">
+        <p className="anim-fade-up text-cyan-100/60 mb-6 text-sm tracking-wide" style={{ animationDelay: "120ms" }}>
           {isDead
             ? `KIA — Wave ${wave} · ${kills} kills · ${score} pts · survived ${Math.floor(timeSurvived)}s`
             : isVictory
@@ -74,7 +75,7 @@ export default function MainMenu() {
         </p>
 
         {(isDead || isVictory) && (
-          <div className={`inline-block px-4 py-1 rounded font-black tracking-widest text-sm mb-4 ${isVictory ? "bg-green-600" : "bg-red-700"}`}>
+          <div className={`inline-block px-4 py-1 font-display font-bold tracking-widest text-sm mb-4 ${isVictory ? "bg-green-600" : "bg-red-700"}`}>
             {isVictory ? "ALL WAVES CLEARED" : "YOU DIED"}
           </div>
         )}
@@ -87,51 +88,51 @@ export default function MainMenu() {
               ["BEST SCORE", `${Math.max(bestScore, score)}`],
               ["PERKS TAKEN", `${perksOwned.length}`],
             ].map(([k, v]) => (
-              <div key={k} className="bg-white/5 border border-white/10 rounded p-3">
-                <div className="text-[10px] tracking-[0.25em] text-white/50 font-bold">{k}</div>
-                <div className="text-2xl font-black">{v}</div>
+              <div key={k} className="holo-panel p-3">
+                <div className="text-[10px] tracking-[0.25em] text-cyan-400/60 font-bold">{k}</div>
+                <div className="font-display text-2xl font-extrabold text-cyan-50">{v}</div>
               </div>
             ))}
           </div>
         )}
         {(isDead || isVictory) && lastRunXp > 0 && (
-          <div className="mb-4 text-sm text-white/70">
-            <span className="text-cyan-300 font-black">+{lastRunXp} XP</span> · Rank: <b className="text-white">{rank.current}</b>
+          <div className="mb-4 text-sm text-cyan-100/70">
+            <span className="text-cyan-300 font-display font-bold">+{lastRunXp} XP</span> · Rank: <b className="text-cyan-50">{rank.current}</b>
             {endless && <> · Endless wave {wave} · Best endless wave {Math.max(bestEndlessWave, wave)}</>}
           </div>
         )}
         {newBest && (isDead || isVictory) && (
-          <div className="mb-4 text-yellow-300 font-black tracking-[0.3em] text-sm animate-pulse">★ NEW BEST SCORE ★</div>
+          <div className="mb-4 text-cyan-200 font-display font-bold tracking-[0.3em] text-sm animate-pulse" style={{ textShadow: "0 0 16px rgba(34,211,238,0.7)" }}>★ NEW BEST SCORE ★</div>
         )}
         {phase === "menu" && bestScore > 0 && (
-          <div className="mb-4 text-yellow-300/80 font-bold tracking-[0.25em] text-xs">BEST SCORE: {bestScore}</div>
+          <div className="mb-4 text-cyan-300/80 font-bold tracking-[0.25em] text-xs">BEST SCORE: {bestScore}</div>
         )}
 
         {phase === "menu" && (
-          <div className="grid grid-cols-3 gap-3 mb-3 text-left">
+          <div className="anim-fade-up grid grid-cols-3 gap-3 mb-3 text-left" style={{ animationDelay: "160ms" }}>
             <button
               onClick={() => setStore({ mapId: "arena" })}
-              className={`pointer-events-auto rounded p-4 border transition active:scale-95 ${mapId === "arena" ? "bg-orange-600/25 border-orange-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+              className={`holo-panel holo-hoverable pointer-events-auto p-4 active:scale-95 ${mapId === "arena" ? "holo-corners holo-selected" : ""}`}
             >
-              <div className="font-black tracking-widest text-sm">🏭 THE ARENA</div>
-              <div className="text-white/60 text-xs mt-1">The original compound — warehouses, containers, open lanes.</div>
-              {mapId === "arena" && <div className="text-orange-400 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
+              <div className="font-display font-bold tracking-widest text-sm text-cyan-50">🏭 THE ARENA</div>
+              <div className="text-cyan-100/55 text-xs mt-1">The original compound — warehouses, containers, open lanes.</div>
+              {mapId === "arena" && <div className="text-cyan-300 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
             </button>
             <button
               onClick={() => setStore({ mapId: "forest" })}
-              className={`pointer-events-auto rounded p-4 border transition active:scale-95 ${mapId === "forest" ? "bg-orange-600/25 border-orange-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+              className={`holo-panel holo-hoverable pointer-events-auto p-4 active:scale-95 ${mapId === "forest" ? "holo-corners holo-selected" : ""}`}
             >
-              <div className="font-black tracking-widest text-sm">🌲 FOREST OUTPOST</div>
-              <div className="text-white/60 text-xs mt-1">Big leafy trees, log cabins and a watchtower at dawn. Cover everywhere.</div>
-              {mapId === "forest" && <div className="text-orange-400 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
+              <div className="font-display font-bold tracking-widest text-sm text-cyan-50">🌲 FOREST OUTPOST</div>
+              <div className="text-cyan-100/55 text-xs mt-1">Big leafy trees, log cabins and a watchtower at dawn. Cover everywhere.</div>
+              {mapId === "forest" && <div className="text-cyan-300 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
             </button>
             <button
               onClick={() => setStore({ mapId: "autumn" })}
-              className={`pointer-events-auto rounded p-4 border transition active:scale-95 ${mapId === "autumn" ? "bg-orange-600/25 border-orange-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+              className={`holo-panel holo-hoverable pointer-events-auto p-4 active:scale-95 ${mapId === "autumn" ? "holo-corners holo-selected" : ""}`}
             >
-              <div className="font-black tracking-widest text-sm">🍂 AUTUMN RIDGE <span className="text-amber-400 text-[10px] align-middle">NEW · V6</span></div>
-              <div className="text-white/60 text-xs mt-1">Golden trees at sunset, leaves in the air — and things hiding between them.</div>
-              {mapId === "autumn" && <div className="text-orange-400 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
+              <div className="font-display font-bold tracking-widest text-sm text-cyan-50">🍂 AUTUMN RIDGE <span className="text-cyan-300 text-[10px] align-middle">NEW · V6</span></div>
+              <div className="text-cyan-100/55 text-xs mt-1">Golden trees at sunset, leaves in the air — and things hiding between them.</div>
+              {mapId === "autumn" && <div className="text-cyan-300 text-[10px] font-black tracking-widest mt-2">● SELECTED</div>}
             </button>
           </div>
         )}
@@ -139,8 +140,8 @@ export default function MainMenu() {
 
         {phase === "menu" && (
           <>
-            <div className="bg-white/5 border border-white/10 rounded p-4 text-left mb-3">
-              <div className="font-bold text-orange-400 text-xs tracking-widest mb-3">⌨️ KEY GUIDE — EVERY CONTROL</div>
+            <div className="holo-panel anim-fade-up p-4 text-left mb-3" style={{ animationDelay: "200ms" }}>
+              <div className="font-display font-bold text-cyan-300 text-xs tracking-widest mb-3">⌨️ KEY GUIDE — EVERY CONTROL</div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-x-5 gap-y-2">
                 {[
                   ["W A S D", "Move"],
@@ -165,24 +166,24 @@ export default function MainMenu() {
                   ["CLICK", "Choose a perk card between waves"],
                 ].map(([k, action]) => (
                   <div key={k} className="flex items-center gap-2">
-                    <span className="shrink-0 bg-white/10 border border-white/25 rounded px-1.5 py-0.5 font-mono font-bold text-[11px] text-white">{k}</span>
-                    <span className="text-xs text-white/75 leading-tight">{action}</span>
+                    <span className="holo-keycap shrink-0">{k}</span>
+                    <span className="text-[13px] text-cyan-100/70 leading-tight">{action}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded p-4 text-left mb-6">
-              <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">🎯 HOW TO PLAY</div>
-              <ul className="text-xs text-white/75 space-y-1.5 leading-relaxed">
-                <li>• Clear every hostile to finish a wave — then <b className="text-white">click 1 of 3 perk cards</b> to upgrade before the next wave.</li>
-                <li>• 🛡️ <b className="text-white">Waves 4 &amp; 8 — Defend the Zone:</b> stand inside the glowing ring until the 60-second timer finishes.</li>
-                <li>• 📦 A <b className="text-white">supply drop</b> lands every wave — run to the crate for a medkit, ammo, grenades or Overdrive (double damage).</li>
-                <li>• 💥 <b className="text-white">Red barrels explode</b> — shoot them near groups. Watch for Exploders (glowing chest) and drones in the sky from wave 5.</li>
-                <li>• 🎯 <b className="text-white">Marksmen</b> (wave 6+) paint you with a <b className="text-red-400">red laser</b> — break line of sight before they fire. 🤖 Deploy your <b className="text-white">sentry (F)</b> to hold ground, and spend <b className="text-white">airstrikes (X)</b> on crowds.</li>
-                <li>• 🚁 <b className="text-white">The GUNSHIP</b> replaces the Juggernaut on alternating boss waves — it circles overhead, strafes, and drops <b className="text-white">rocket salvos</b> (run from the red circles!). Counter it with the <b className="text-white">Stinger (6)</b>: aim to lock, then fire. 🌧️ Some waves hit a <b className="text-white">storm front</b> — rain, fog, short sightlines.</li>
-                <li>• 🥷 <b className="text-white">In the woods</b> (wave 7+), watch for <b className="text-white">Stalkers</b> — ghillie ambushers, near-invisible while still, flickering on the minimap. Get close or wing one and he rushes you. 🍂 <b className="text-white">Autumn Ridge</b> is the woods at sunset.</li>
-                <li>• ☠️ <b className="text-white">Wave 10 — the Juggernaut.</b> Beat him to win, then choose <b className="text-white">∞ Endless</b> to see how far you get. Health slowly regenerates if you avoid fire.</li>
+            <div className="holo-panel anim-fade-up p-4 text-left mb-6" style={{ animationDelay: "240ms" }}>
+              <div className="font-display font-bold text-cyan-300 text-xs tracking-widest mb-2">🎯 HOW TO PLAY</div>
+              <ul className="text-[13px] text-cyan-100/70 space-y-1.5 leading-relaxed">
+                <li>• Clear every hostile to finish a wave — then <b className="text-cyan-50">click 1 of 3 perk cards</b> to upgrade before the next wave.</li>
+                <li>• 🛡️ <b className="text-cyan-50">Waves 4 &amp; 8 — Defend the Zone:</b> stand inside the glowing ring until the 60-second timer finishes.</li>
+                <li>• 📦 A <b className="text-cyan-50">supply drop</b> lands every wave — run to the crate for a medkit, ammo, grenades or Overdrive (double damage).</li>
+                <li>• 💥 <b className="text-cyan-50">Red barrels explode</b> — shoot them near groups. Watch for Exploders (glowing chest) and drones in the sky from wave 5.</li>
+                <li>• 🎯 <b className="text-cyan-50">Marksmen</b> (wave 6+) paint you with a <b className="text-red-400">red laser</b> — break line of sight before they fire. 🤖 Deploy your <b className="text-cyan-50">sentry (F)</b> to hold ground, and spend <b className="text-cyan-50">airstrikes (X)</b> on crowds.</li>
+                <li>• 🚁 <b className="text-cyan-50">The GUNSHIP</b> replaces the Juggernaut on alternating boss waves — it circles overhead, strafes, and drops <b className="text-cyan-50">rocket salvos</b> (run from the red circles!). Counter it with the <b className="text-cyan-50">Stinger (6)</b>: aim to lock, then fire. 🌧️ Some waves hit a <b className="text-cyan-50">storm front</b> — rain, fog, short sightlines.</li>
+                <li>• 🥷 <b className="text-cyan-50">In the woods</b> (wave 7+), watch for <b className="text-cyan-50">Stalkers</b> — ghillie ambushers, near-invisible while still, flickering on the minimap. Get close or wing one and he rushes you. 🍂 <b className="text-cyan-50">Autumn Ridge</b> is the woods at sunset.</li>
+                <li>• ☠️ <b className="text-cyan-50">Wave 10 — the Juggernaut.</b> Beat him to win, then choose <b className="text-cyan-50">∞ Endless</b> to see how far you get. Health slowly regenerates if you avoid fire.</li>
               </ul>
             </div>
           </>
@@ -191,44 +192,44 @@ export default function MainMenu() {
         <div className="flex gap-3 justify-center flex-wrap">
           <button
             onClick={start}
-            className="pointer-events-auto bg-orange-600 hover:bg-orange-500 active:scale-95 transition text-2xl font-black tracking-widest px-14 py-4 rounded shadow-[0_0_40px_rgba(255,100,0,0.4)]"
+            className="holo-btn pointer-events-auto text-2xl font-extrabold tracking-widest px-14 py-4"
           >
             {phase === "menu" ? "▶ PLAY" : "↻ REPLAY"}
           </button>
           {isVictory && (
             <button
               onClick={continueEndless}
-              className="pointer-events-auto bg-cyan-700 hover:bg-cyan-600 active:scale-95 transition text-2xl font-black tracking-widest px-10 py-4 rounded shadow-[0_0_40px_rgba(0,180,255,0.35)]"
+              className="holo-btn-ghost pointer-events-auto text-2xl font-extrabold tracking-widest px-10 py-4 shadow-[0_0_40px_rgba(34,211,238,0.3)]"
             >
               ∞ ENDLESS
             </button>
           )}
         </div>
-        {isVictory && <div className="mt-2 text-xs text-white/40">ENDLESS: waves keep scaling past 10 — how far can you get?</div>}
+        {isVictory && <div className="mt-2 text-xs text-cyan-100/40">ENDLESS: waves keep scaling past 10 — how far can you get?</div>}
 
         {phase === "menu" && (
-          <div className="mt-6 text-left bg-white/5 border border-white/10 rounded p-4">
-            <div className="font-bold text-orange-400 text-xs tracking-widest mb-3">⚙️ SETTINGS</div>
+          <div className="holo-panel anim-fade-up mt-6 text-left p-4">
+            <div className="font-display font-bold text-cyan-300 text-xs tracking-widest mb-3">⚙️ SETTINGS</div>
             <SettingsPanel />
           </div>
         )}
 
         {phase === "menu" && (
-          <div className="mt-6 text-left bg-white/5 border border-white/10 rounded p-4">
+          <div className="holo-panel anim-fade-up mt-6 text-left p-4">
             <div className="flex justify-between items-baseline mb-1">
-              <div className="font-black tracking-widest text-sm">RANK: <span className="text-cyan-300">{rank.current}</span></div>
-              <div className="text-xs text-white/50">{xp} XP{rank.next ? ` · next: ${rank.next} at ${rank.nextXp}` : " · MAX RANK"}{bestEndlessWave > 0 ? ` · best endless wave ${bestEndlessWave}` : ""}</div>
+              <div className="font-display font-bold tracking-widest text-sm text-cyan-50">RANK: <span className="text-cyan-300">{rank.current}</span></div>
+              <div className="text-xs text-cyan-100/50">{xp} XP{rank.next ? ` · next: ${rank.next} at ${rank.nextXp}` : " · MAX RANK"}{bestEndlessWave > 0 ? ` · best endless wave ${bestEndlessWave}` : ""}</div>
             </div>
-            <div className="h-2 bg-white/10 rounded overflow-hidden mb-4">
+            <div className="h-2 bg-cyan-950/80 border border-cyan-400/20 overflow-hidden mb-4">
               <div className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300" style={{ width: `${Math.round(rank.progress * 100)}%` }} />
             </div>
-            <div className="font-bold text-orange-400 text-xs tracking-widest mb-2">ACHIEVEMENTS — {achievements.length}/8</div>
+            <div className="font-display font-bold text-cyan-300 text-xs tracking-widest mb-2">ACHIEVEMENTS — {achievements.length}/8</div>
             <div className="grid grid-cols-4 gap-2">
               {(Object.keys(ACH_DEFS) as AchId[]).map((id) => {
                 const d = ACH_DEFS[id];
                 const got = achievements.includes(id);
                 return (
-                  <div key={id} className={`rounded p-2 border ${got ? "bg-yellow-500/10 border-yellow-400/40" : "bg-black/30 border-white/5 opacity-45"}`} title={d.desc}>
+                  <div key={id} className={`p-2 border ${got ? "bg-cyan-400/10 border-cyan-400/50 shadow-[0_0_12px_rgba(34,211,238,0.2)]" : "bg-black/30 border-cyan-400/10 opacity-45"}`} title={d.desc}>
                     <div className="text-lg leading-none mb-1">{d.icon}</div>
                     <div className="text-[10px] font-black tracking-wide leading-tight">{d.name}</div>
                   </div>
@@ -237,7 +238,7 @@ export default function MainMenu() {
             </div>
           </div>
         )}
-        <div className="mt-3 text-xs text-white/40">Click locks your mouse for aiming · ESC to pause/unlock</div>
+        <div className="mt-3 text-xs text-cyan-100/40">Click locks your mouse for aiming · ESC to pause/unlock</div>
 
         <ClickToLockHelper />
       </div>

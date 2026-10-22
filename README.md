@@ -113,13 +113,24 @@ The game state is split so the render loop never re-renders React at 60 fps:
 - `lib/game.ts` — shared mutable runtime: colliders, enemy/barrel registries, FX queues, explosions, slow-mo, pause deadline-shifting. Pure data + math, no React.
 - `lib/store.ts` — Zustand store for UI state only: phase (`menu → playing → perk → paused → dead/victory`), health, ammo, weapons, perks, combo, stats, boss HP, settings, XP/achievements.
 - `lib/audio.ts` — every SFX synthesized with WebAudio (shots, reloads, explosions, footsteps, UI); zero audio files.
-- `components/` — `Player` (movement, hitscan, lock-on), `Enemies` (AI, waves, kinds, both bosses), `World` (maps, day/night/storm lighting), `WeaponModel`, `Effects` (tracers, impacts, explosions), `HUD`, `Minimap`, `MainMenu`, `PauseMenu`, `SettingsPanel`, `PerkDraft`, plus one component per system (turret, grenades, rockets, airstrike, zone, supply drops, health bag).
+- `components/` — `Player` (movement, hitscan, lock-on), `Enemies` (AI, waves, kinds, both bosses), `World` (maps, day/night/storm lighting), `WeaponModel`, `Effects` (tracers, impacts, explosions), `HUD`, `Minimap`, `CompassBar`, `WaveBanner`, `MainMenu`, `PauseMenu`, `SettingsPanel`, `PerkDraft`, plus one component per system (turret, grenades, rockets, airstrike, zone, supply drops, health bag).
 
 Wave scaling: enemy count `3 + wave × 2` (cap 14), HP `90 + wave × 14`, speed and fire rate scale per wave, with kind-specific multipliers on top.
 
 ## 🛠️ Tech
 
 Next.js 14 · React 18 · Three.js · @react-three/fiber · @react-three/drei · Zustand · Tailwind CSS · TypeScript · Docker (standalone output) · deployed on Vercel
+
+## 🖥️ V8 — HOLOGRAM UI
+
+V8 is a full frontend overhaul — every screen rebuilt on one **cyan military-hologram design system**, the old orange UI removed in one go. Gameplay is untouched.
+
+- **Design system** — deep-navy glass panels with hairline cyan borders, L-shaped corner brackets, scanline texture, and a shared set of holo panel/button/chip/keycap styles. **Orbitron** for titles and numbers, **Rajdhani** for UI text.
+- **Main menu** — glowing Orbitron title, staggered panel entrances, maps as selectable holo cards with a lit selected state, and the cabin backdrop retinted toward navy so the hologram sits on it.
+- **HUD rebuilt** — segmented health bar (one segment per 10 HP; cyan → amber → pulsing red as it drops, with a heartbeat vignette under 20%), a big Orbitron ammo readout with low-ammo/reloading states, holo ability chips with key caps, and restyled boss bar, killfeed, combo and toasts.
+- **NEW compass bar** — a top-center tick strip (N/E/S/W + degrees) that scrolls with your heading, plus a live degree readout.
+- **NEW wave banner** — an animated "WAVE N" splash as each wave begins, calling out NIGHT OPS, STORM WARNING, DEFEND THE ZONE, the FINAL WAVE, boss inbounds, and the start of ENDLESS MODE.
+- Perk draft, pause menu, settings (cyan sliders/toggles), minimap frame and the Stinger lock readout all speak the same holo language now.
 
 ## 📜 Version history
 
@@ -132,6 +143,7 @@ Next.js 14 · React 18 · Three.js · @react-three/fiber · @react-three/drei ·
 | V5 — GUNSHIP | Gunship boss, FIM-92 Stinger lock-on, storm waves |
 | V6 — EVERFALL | Leafy broadleaf trees, Autumn Ridge map, Stalker ambusher |
 | V7 — PAUSE & SETTINGS | Esc pause menu that truly freezes the sim; sensitivity / volume / invert-Y / quality settings |
+| V8 — HOLOGRAM UI | Full UI overhaul: cyan holo design system, rebuilt HUD, compass bar, wave banner, Orbitron/Rajdhani type |
 
 ---
 
