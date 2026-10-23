@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useGameStore, ACH_DEFS, rankFor } from "@/lib/store";
 import type { AchId } from "@/lib/store";
 import SettingsPanel from "./SettingsPanel";
@@ -25,6 +26,9 @@ export default function MainMenu() {
   const setStore = useGameStore((s) => s.set);
   const endless = useGameStore((s) => s.endless);
   const rank = rankFor(xp);
+  // menu panels live behind the icon toolbar — main menu shows only maps + PLAY
+  const [panel, setPanel] = useState<"keys" | "howto" | "settings" | "achievements" | null>(null);
+  const togglePanel = (id: "keys" | "howto" | "settings" | "achievements") => setPanel((cur) => (cur === id ? null : id));
 
   const continueEndless = () => {
     const s = useGameStore.getState();
@@ -140,8 +144,12 @@ export default function MainMenu() {
 
         {phase === "menu" && (
           <>
+            {panel === "keys" && (
             <div className="holo-panel anim-fade-up p-4 text-left mb-3" style={{ animationDelay: "200ms" }}>
-              <div className="font-display font-bold text-cyan-300 text-xs tracking-widest mb-3">⌨️ KEY GUIDE — EVERY CONTROL</div>
+              <div className="flex items-start justify-between mb-3">
+                <div className="font-display font-bold text-cyan-300 text-xs tracking-widest">⌨️ KEY GUIDE — EVERY CONTROL</div>
+                <button onClick={() => setPanel(null)} className="holo-btn-ghost pointer-events-auto px-2 py-0.5 text-xs font-bold" aria-label="Close key guide">✕</button>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-x-5 gap-y-2">
                 {[
                   ["W A S D", "Move"],
@@ -173,8 +181,13 @@ export default function MainMenu() {
               </div>
             </div>
 
+            )}
+            {panel === "howto" && (
             <div className="holo-panel anim-fade-up p-4 text-left mb-6" style={{ animationDelay: "240ms" }}>
-              <div className="font-display font-bold text-cyan-300 text-xs tracking-widest mb-2">🎯 HOW TO PLAY</div>
+              <div className="flex items-start justify-between mb-2">
+                <div className="font-display font-bold text-cyan-300 text-xs tracking-widest">🎯 HOW TO PLAY</div>
+                <button onClick={() => setPanel(null)} className="holo-btn-ghost pointer-events-auto px-2 py-0.5 text-xs font-bold" aria-label="Close how to play">✕</button>
+              </div>
               <ul className="text-[13px] text-cyan-100/70 space-y-1.5 leading-relaxed">
                 <li>• Clear every hostile to finish a wave — then <b className="text-cyan-50">click 1 of 3 perk cards</b> to upgrade before the next wave.</li>
                 <li>• 🛡️ <b className="text-cyan-50">Waves 4 &amp; 8 — Defend the Zone:</b> stand inside the glowing ring until the 60-second timer finishes.</li>
@@ -186,6 +199,7 @@ export default function MainMenu() {
                 <li>• ☠️ <b className="text-cyan-50">Wave 10 — the Juggernaut.</b> Beat him to win, then choose <b className="text-cyan-50">∞ Endless</b> to see how far you get. Health slowly regenerates if you avoid fire.</li>
               </ul>
             </div>
+            )}
           </>
         )}
 
@@ -208,16 +222,42 @@ export default function MainMenu() {
         {isVictory && <div className="mt-2 text-xs text-cyan-100/40">ENDLESS: waves keep scaling past 10 — how far can you get?</div>}
 
         {phase === "menu" && (
+          <div className="anim-fade-up flex gap-2 justify-center mt-5" style={{ animationDelay: "260ms" }}>
+            {(
+              [
+                ["keys", "⌨️", "KEYS"],
+                ["howto", "🎯", "GUIDE"],
+                ["settings", "⚙️", "SETTINGS"],
+                ["achievements", "🏆", "TROPHIES"],
+              ] as const
+            ).map(([id, icon, label]) => (
+              <button
+                key={id}
+                onClick={() => togglePanel(id)}
+                className={`pointer-events-auto px-4 py-2.5 font-display font-bold tracking-widest text-xs active:scale-95 ${panel === id ? "holo-btn" : "holo-btn-ghost"}`}
+              >
+                <span className="text-base mr-1.5">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {phase === "menu" && panel === "settings" && (
           <div className="holo-panel anim-fade-up mt-6 text-left p-4">
-            <div className="font-display font-bold text-cyan-300 text-xs tracking-widest mb-3">⚙️ SETTINGS</div>
+            <div className="flex items-start justify-between mb-3">
+              <div className="font-display font-bold text-cyan-300 text-xs tracking-widest">⚙️ SETTINGS</div>
+              <button onClick={() => setPanel(null)} className="holo-btn-ghost pointer-events-auto px-2 py-0.5 text-xs font-bold" aria-label="Close settings">✕</button>
+            </div>
             <SettingsPanel />
           </div>
         )}
 
-        {phase === "menu" && (
+        {phase === "menu" && panel === "achievements" && (
           <div className="holo-panel anim-fade-up mt-6 text-left p-4">
             <div className="flex justify-between items-baseline mb-1">
               <div className="font-display font-bold tracking-widest text-sm text-cyan-50">RANK: <span className="text-cyan-300">{rank.current}</span></div>
+              <button onClick={() => setPanel(null)} className="holo-btn-ghost pointer-events-auto px-2 py-0.5 text-xs font-bold self-center" aria-label="Close achievements">✕</button>
               <div className="text-xs text-cyan-100/50">{xp} XP{rank.next ? ` · next: ${rank.next} at ${rank.nextXp}` : " · MAX RANK"}{bestEndlessWave > 0 ? ` · best endless wave ${bestEndlessWave}` : ""}</div>
             </div>
             <div className="h-2 bg-cyan-950/80 border border-cyan-400/20 overflow-hidden mb-4">
