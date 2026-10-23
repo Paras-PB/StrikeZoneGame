@@ -279,7 +279,7 @@ export default function MainMenu() {
           </div>
         )}
         <div className="mt-3 text-xs text-cyan-100/40">Click locks your mouse for aiming · ESC to pause/unlock</div>
-        <div className="mt-2 font-display text-[11px] font-bold tracking-[0.35em] text-cyan-100/35">CREATED BY <span className="text-cyan-300/80">P&amp;B</span></div>
+        <div className="mt-2 font-display text-[11px] font-bold tracking-[0.35em] text-black [text-shadow:none]">CREATED BY <span className="text-black">P&amp;B</span></div>
 
         <ClickToLockHelper />
       </div>
