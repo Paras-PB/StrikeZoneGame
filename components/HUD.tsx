@@ -142,6 +142,28 @@ export default function HUD() {
         </div>
       )}
 
+      {/* reload icon — spins while reloading, pulses when the mag is dry */}
+      {(reloading || outOfAmmo) && (
+        <div className="absolute left-1/2 top-[59%] -translate-x-1/2 flex flex-col items-center gap-1">
+          <svg
+            viewBox="0 0 24 24"
+            className={`w-9 h-9 ${reloading ? "animate-spin text-cyan-300" : "animate-pulse text-red-400"}`}
+            style={reloading ? { animationDuration: "0.9s", filter: "drop-shadow(0 0 6px rgba(34,211,238,0.7))" } : { filter: "drop-shadow(0 0 6px rgba(239,68,68,0.7))" }}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+          <div className={`font-display text-[10px] font-bold tracking-[0.3em] ${reloading ? "text-cyan-200" : "text-red-300"}`} style={{ textShadow: "0 0 10px rgba(0,0,0,0.9)" }}>
+            {reloading ? "RELOADING" : "PRESS R"}
+          </div>
+        </div>
+      )}
+
       {/* top stats bar (below the compass) */}
       <div className="holo-panel holo-corners absolute top-[64px] left-1/2 -translate-x-1/2 flex items-center gap-6 px-6 py-2">
         <div className="text-center">
