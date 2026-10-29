@@ -75,7 +75,7 @@ export default function MainMenu() {
             ? `KIA — Wave ${wave} · ${kills} kills · ${score} pts · survived ${Math.floor(timeSurvived)}s`
             : isVictory
             ? `MISSION COMPLETE — ${kills} kills · ${score} pts · ${Math.floor(timeSurvived)}s`
-            : "V3 AIRBORNE — drones in the sky, zones to defend, supply drops, grenades, a sniper, and a Juggernaut at the end. Survive."}
+            : "Three maps. Ten waves. Two bosses. Survive — or push into endless."}
         </p>
 
         {(isDead || isVictory) && (
