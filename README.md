@@ -6,7 +6,7 @@
 [![Three.js](https://img.shields.io/badge/Three.js-WebGL-black)](https://threejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org)
 
-A fast, COD-style **wave shooter that runs entirely in your browser** — no downloads, no assets. Every 3D model is built from primitives and every sound effect is synthesized live with the Web Audio API.
+A fast, COD-style **wave shooter that runs entirely in your browser** — no downloads. Every 3D model is built from primitives and every sound effect is synthesized live with the Web Audio API.
 
 **Survive 10 waves. Draft a perk after every wave. Kill the Juggernaut. Then decide: extract, or push into endless.**
 
