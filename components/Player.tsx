@@ -7,7 +7,7 @@ import { colliders, collideCircle, enemyRegistry, barrelRegistry, explodeAt, pla
 import type { EnemyKind } from "@/lib/game";
 import type { BarrelEntry } from "@/lib/game";
 import { sfxShoot, sfxReload, sfxEmpty, sfxHit, sfxHeadshot, sfxStep, sfxLock } from "@/lib/audio";
-import ChibiPlayer from "./ChibiPlayer";
+import WeaponModel from "./WeaponModel";
 
 const keys = new Set<string>();
 
@@ -54,6 +54,7 @@ export default function Player() {
   const recoil = useRef(0);
   const muzzle = useRef<THREE.PointLight>(null);
   const muzzleFlash = useRef(0);
+  const camHeight = useRef(1.65);
   const tmp = useMemo(() => ({ dir: new THREE.Vector3(), fwd: new THREE.Vector3(), right: new THREE.Vector3(), origin: new THREE.Vector3() }), []);
 
   // input listeners
@@ -241,13 +242,8 @@ export default function Player() {
     a[s.activeWeapon] = { mag: ammoNow.mag - 1, reserve: ammoNow.reserve };
     s.set({ ammo: a, shots: s.shots + 1 });
 
-    // Third-person aiming: shots come from the camera, through the
-    // crosshair, so what you aim at is what you hit. The old
-    // first-person eye origin (player pos + 1.6 m) would be parallel to
-    // the camera ray and offset by the camera distance, so close
-    // targets would miss the crosshair. The camera position is set in
-    // useFrame before shoot() runs each frame, so this is current.
-    const origin = new THREE.Vector3().copy(camera.position);
+    const origin = new THREE.Vector3().copy(playerState.pos);
+    origin.y += s.ads ? 1.55 : 1.6;
     const baseSpread = s.ads ? w.spreadAds : w.spreadHip + (s.sprinting ? 0.02 : 0) + vel.current.length() * 0.0015;
 
     // recoil + flash + sound, once per pull
@@ -518,11 +514,11 @@ export default function Player() {
     }
     playerState.grounded = onGround.current;
 
-    // Third-person camera — behind and above Chibineko, looking along
-    // the aim direction (yaw + pitch) so the crosshair is the aim.
-    // ADS pulls in close over the right shoulder; sliding drops it low.
+    // camera — low dip + roll + FOV kick during slide
     const isSliding = slideTime.current > 0;
-    // headbob (footsteps only — the character bobs in ChibiPlayer)
+    const targetH = isSliding ? 0.72 : ads ? 1.5 : 1.65;
+    camHeight.current += (targetH - camHeight.current) * (1 - Math.exp(-12 * dt));
+    // headbob
     const hSpeed = Math.hypot(vel.current.x, vel.current.z);
     if (onGround.current && hSpeed > 1) {
       bobT.current += dt * (4 + hSpeed * 1.15);
@@ -532,55 +528,25 @@ export default function Player() {
         sfxStep(wantSprint);
       }
     }
+    const bobX = Math.sin(bobT.current) * 0.035 * Math.min(1, hSpeed / 6) * (ads ? 0.3 : 1);
     const bobY = Math.abs(Math.cos(bobT.current)) * 0.04 * Math.min(1, hSpeed / 6) * (ads ? 0.3 : 1);
 
     // recoil decay
     recoil.current *= Math.exp(-10 * dt);
     const tilt = THREE.MathUtils.clamp(-strafe * 0.012 - vel.current.dot(tmp.right) * 0.0012, -0.03, 0.03);
 
-    const fwdV = new THREE.Vector3(-Math.sin(playerState.yaw), 0, -Math.cos(playerState.yaw));
-    const rightV = new THREE.Vector3(-fwdV.z, 0, fwdV.x);
-    const backV = fwdV.clone().negate();
-    const camDist = ads ? 2.0 : 4.4;
-    const camHeightT = isSliding ? 1.4 : ads ? 1.9 : 2.1;
-    const camRight = ads ? 0.7 : 0.35;
-    const head = new THREE.Vector3(playerState.pos.x, playerState.pos.y + 1.6, playerState.pos.z);
-    const desired = new THREE.Vector3()
-      .copy(playerState.pos)
-      .addScaledVector(backV, camDist)
-      .addScaledVector(rightV, camRight);
-    desired.y = playerState.pos.y + camHeightT + bobY;
-    // Camera collision: pull the camera in toward the head until it is
-    // out of every world collider (expanded a little), so backing into
-    // a wall / cabin does not put the camera through geometry.
-    let camT = 1;
-    const collidesAt = (p: THREE.Vector3) => {
-      if (p.x < -56 || p.x > 56 || p.z < -56 || p.z > 56 || p.y < 0.3) return true;
-      for (const c of colliders) {
-        if (
-          p.x > c.min.x - 0.35 && p.x < c.max.x + 0.35 &&
-          p.y > c.min.y - 0.35 && p.y < c.max.y + 0.35 &&
-          p.z > c.min.z - 0.35 && p.z < c.max.z + 0.35
-        ) return true;
-      }
-      return false;
-    };
-    for (let t = 1; t >= 0.25; t -= 0.05) {
-      const p = head.clone().lerp(desired, t);
-      if (!collidesAt(p)) {
-        camT = t;
-        break;
-      }
-      camT = t;
-    }
-    const camPos = head.clone().lerp(desired, camT);
-    camera.position.copy(camPos);
-    // Look along the aim direction, with recoil, then add roll.
-    const aimDir = new THREE.Vector3(0, 0, -1).applyEuler(
-      new THREE.Euler(playerState.pitch + recoil.current, playerState.yaw, 0, "YXZ")
+    camera.position.set(
+      playerState.pos.x + Math.cos(playerState.yaw) * bobX * 0.4,
+      playerState.pos.y + camHeight.current + bobY,
+      playerState.pos.z - Math.sin(playerState.yaw) * bobX * 0.4
     );
-    camera.lookAt(camPos.clone().addScaledVector(aimDir, 10));
-    camera.rotateZ(tilt + (isSliding ? 0.17 + Math.sin(now * 31) * 0.006 : 0));
+    camera.rotation.set(0, 0, 0);
+    camera.rotation.order = "YXZ";
+    camera.rotation.y = playerState.yaw;
+    camera.rotation.x = playerState.pitch + recoil.current;
+    camera.rotation.z = tilt;
+    // slide feel: strong roll + subtle high-frequency shake
+    if (isSliding) camera.rotation.z += 0.17 + Math.sin(now * 31) * 0.006;
 
     const persp = camera as unknown as THREE.PerspectiveCamera;
     const fovTarget = (ads ? (s.activeWeapon === "sn" ? 24 : 55) : 82) + (isSliding ? 9 : 0);
@@ -636,7 +602,7 @@ export default function Player() {
   return (
     <group>
       <pointLight ref={muzzle} position={[0, -10, 0]} intensity={0} distance={9} color="#ffcf7a" />
-      <ChibiPlayer flash={muzzleFlash} />
+      <WeaponModel flash={muzzleFlash} />
     </group>
   );
 }
